@@ -1,0 +1,16 @@
+Push:
+
+cd "c:\Users\james\Desktop\Sharpeye\Prompt Engineering"
+git add .
+git commit -m "initial setup"
+git push origin main
+
+Pull:
+
+cd "c:\Users\james\Desktop\Sharpeye\Prompt Engineering"
+
+git fetch origin
+
+git reset --hard origin/main
+
+git clean -fd

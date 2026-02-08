@@ -1,0 +1,59 @@
+{
+  "ExecutiveSummary": "Yareni showed real grit in this match, especially in the longer rallies where she dominated with a 61.5% win rate. Her return game was solid and she converted 4 of 5 break point opportunities, which is exactly what you want to see. The serve needs attention though, with 7 double faults hurting her ability to hold serve consistently. She saved only 2 of 7 break points on her own serve, which put her under constant pressure. When Yareni trusted her legs and extended points, she found her best tennis.",
+  "ServeIQ": {
+    "KeyTakeaways": [
+      "First serve percentage at 66.7% is acceptable but the 50% points won on first serve is leaving free points on the table",
+      "Seven double faults is too many and put unnecessary pressure on her service games",
+      "Second serve in percentage of 68.2% shows she is missing too many second serves as well",
+      "Both first and second serve points won sitting at 50% indicates opponents are not feeling threatened by her serve"
+    ],
+    "Suggestions": [
+      "Focus on getting more spin and depth on the second serve to reduce double faults and get that number down to 3 or fewer",
+      "Work on first serve placement rather than pure power to increase points won to at least 55%",
+      "Develop a higher percentage second serve pattern that sets up the third ball attack"
+    ]
+  },
+  "ReturnIQ": {
+    "KeyTakeaways": [
+      "Strong A minus grade shows Yareni is reading the opponent serve well and staying in points",
+      "Excellent second serve return at 60.7% points won shows she is punishing weak serves",
+      "Drew 8 double faults from the opponent which shows she was applying good return pressure",
+      "First serve return at 40.6% is solid and keeps her in rallies where she excels"
+    ],
+    "Suggestions": [
+      "Continue the aggressive mindset on second serve returns and look to step inside the baseline",
+      "Work on taking the first serve return earlier to put more pressure on the opponent and neutralize their advantage"
+    ]
+  },
+  "RallyDNA": {
+    "KeyTakeaways": [
+      "Long rally win percentage of 61.5% is her bread and butter and shows great fitness and shot selection",
+      "Medium rallies at 51.7% shows she can compete in all phases of the point",
+      "Backhand errors at 17 compared to only 3 winners is a clear area that needs work",
+      "Forehand is more reliable with 6 winners to 10 errors but still has room to improve"
+    ],
+    "Suggestions": [
+      "The backhand needs to become more consistent since 17 errors is giving away too many free points",
+      "Since she thrives in long rallies she should focus on building points patiently and avoiding forced errors early in points",
+      "Work on transitioning from defense to offense in medium rallies to boost that win percentage above 55%"
+    ]
+  },
+  "ClutchFactor": {
+    "KeyTakeaways": [
+      "Converting 80% of break points is elite level and shows she rises to the occasion when it matters",
+      "Saving only 28.6% of break points faced is a real concern and cost her momentum throughout the match",
+      "Saved 1 of 3 set points which shows she can fight but needs to be more consistent under pressure on serve",
+      "The gap between her break point conversion and break point saves tells the story of this match"
+    ],
+    "Suggestions": [
+      "Develop a go to serve pattern for break points faced and practice it until it becomes automatic",
+      "Work on the mental reset between points when facing break points to avoid compounding pressure",
+      "Build a first strike play off the serve to win quick points when under pressure instead of getting into rallies"
+    ]
+  },
+  "NextMatchFocus": [
+    "Reduce double faults to 3 or fewer (goal: 3 max)",
+    "Improve break points saved percentage (goal: 50%)",
+    "Cut backhand unforced errors in half (goal: 8 or fewer)"
+  ]
+}
