@@ -120,13 +120,6 @@
     .form-row:last-child { border-bottom: none; }
     .field-label { font-size: 12px; font-weight: 600; color: var(--muted);
                    min-width: 86px; padding-top: 9px; }
-    .shots-control { display: flex; align-items: center; gap: 10px; }
-    .shots-btn { width: 32px; height: 32px; border: 1.5px solid var(--border);
-                 border-radius: var(--radius); background: var(--card); color: var(--text);
-                 font-size: 18px; cursor: pointer; display: flex; align-items: center;
-                 justify-content: center; transition: all 0.12s; }
-    .shots-btn:hover { border-color: var(--blue); color: var(--blue); }
-    .shots-value { font-size: 20px; font-weight: 700; min-width: 32px; text-align: center; }
     .form-actions { display: flex; gap: 8px; margin-top: 4px; padding-top: 4px; }
     .btn-log { flex: 1; background: var(--orange); color: #fff; border: none;
                border-radius: var(--radius); padding: 12px; font-size: 15px;
@@ -186,6 +179,58 @@
     .export-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
     .export-actions .btn-primary { text-align: center; font-size: 15px; padding: 13px; }
 
+    /* ── Court Tracker ── */
+    .court-tracker { margin-top: 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); }
+    .court-tracker-hdr { display: flex; align-items: center; padding: 9px 14px; cursor: pointer; user-select: none; gap: 8px; }
+    .court-tracker-hdr > span:first-child { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.05em; flex: 1; }
+    .court-shots-badge { font-size: 11px; color: var(--muted); }
+    .court-chevron { font-size: 10px; color: var(--muted); transition: transform 0.2s; display: inline-block; }
+    .court-chevron.open { transform: rotate(180deg); }
+    .court-tracker-body { display: none; padding: 10px 12px; border-top: 1px solid var(--border); }
+    .court-tracker-body.open { display: block; }
+    .court-hint { font-size: 10px; color: var(--muted); margin-bottom: 8px; line-height: 1.6; }
+    .court-hint kbd { background: #e8ecf0; border-radius: 3px; padding: 1px 4px; font-family: monospace; font-size: 10px; }
+    .court-wrapper { position: relative; display: flex; justify-content: center; margin-bottom: 8px; }
+    #court-svg { cursor: crosshair; display: block; border-radius: 3px; }
+    .court-footer { display: flex; align-items: center; justify-content: space-between; }
+    .court-shot-count { font-size: 11px; color: var(--muted); }
+    .shot-legend { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+    .shot-legend-item { display: flex; align-items: center; gap: 3px; font-size: 10px; color: var(--muted); }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+    .btn-clear-shots { font-size: 11px; padding: 3px 10px; background: none; border: 1px solid var(--border); border-radius: 4px; color: var(--muted); cursor: pointer; }
+    .btn-clear-shots:hover { border-color: var(--danger); color: var(--danger); }
+    /* Shot popup */
+    .shot-popup { position: absolute; background: #fff; border: 1.5px solid var(--border); border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.18); padding: 8px; z-index: 200; width: 162px; }
+    .popup-label { font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+    .popup-row { display: flex; gap: 3px; margin-bottom: 5px; }
+    .shot-type-btn { flex: 1; padding: 5px 0; font-size: 11px; font-weight: 700; border: 1.5px solid var(--border); border-radius: 5px; cursor: pointer; background: var(--toggle-off); color: var(--toggle-off-text); transition: all 0.1s; }
+    .shot-type-btn.sel-F { background: #2a5298; color: #fff; border-color: #2a5298; }
+    .shot-type-btn.sel-B { background: #e87722; color: #fff; border-color: #e87722; }
+    .shot-type-btn.sel-V { background: #2d8a4e; color: #fff; border-color: #2d8a4e; }
+    .shot-type-btn.sel-S { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+    .shot-spin-btn { flex: 1; padding: 4px 0; font-size: 9px; font-weight: 600; border: 1.5px solid var(--border); border-radius: 5px; cursor: pointer; background: var(--toggle-off); color: var(--toggle-off-text); transition: all 0.1s; }
+    .shot-spin-btn.sel { background: #555; color: #fff; border-color: #555; }
+    .popup-cancel { width: 100%; margin-top: 2px; padding: 3px; font-size: 10px; background: none; border: none; color: var(--muted); cursor: pointer; }
+    .popup-cancel:hover { color: var(--danger); }
+    /* Heatmap */
+    .heatmap-section { margin-top: 16px; }
+    .heatmap-controls { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+    .hm-group { display: flex; align-items: center; gap: 4px; }
+    .hm-group-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+    .hm-btn { padding: 4px 9px; font-size: 11px; font-weight: 600; border: 1.5px solid var(--border); border-radius: 5px; cursor: pointer; background: var(--toggle-off); color: var(--toggle-off-text); transition: all 0.1s; }
+    .hm-btn.hm-active { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .hm-btn[data-type="F"].hm-active { background: #2a5298; border-color: #2a5298; }
+    .hm-btn[data-type="B"].hm-active { background: #e87722; border-color: #e87722; }
+    .hm-btn[data-type="V"].hm-active { background: #2d8a4e; border-color: #2d8a4e; }
+    .hm-btn[data-type="S"].hm-active { background: #7c3aed; border-color: #7c3aed; }
+    .hm-btn[data-spin="topspin"].hm-active { background: #2a5298; border-color: #2a5298; }
+    .hm-btn[data-spin="slice"].hm-active   { background: #e87722; border-color: #e87722; }
+    .hm-btn[data-spin="flat"].hm-active    { background: #555;    border-color: #555; }
+    .heatmap-court-wrap { position: relative; display: inline-block; }
+    #heatmap-canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
+    .heatmap-no-data { font-size: 13px; color: var(--muted); text-align: center; padding: 20px 0; }
+    .hm-shot-count { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
     /* ── Mobile ── */
     .mobile-tabs { display: none; }
 
@@ -237,8 +282,6 @@
       .field-label { min-width: unset; padding-top: 0; font-size: 13px; }
       .btn-log { padding: 18px; font-size: 17px; }
       .btn-danger { padding: 14px 18px; font-size: 14px; }
-      .shots-btn { width: 48px; height: 48px; font-size: 24px; }
-      .shots-value { font-size: 26px; }
       .point-form-panel { padding: 14px 12px; }
       .form-actions { flex-direction: column; }
 
@@ -394,14 +437,6 @@
         </div>
       </div>
       <div class="form-row">
-        <div class="field-label">Shots</div>
-        <div class="shots-control">
-          <button class="shots-btn" id="shots-minus">−</button>
-          <span class="shots-value" id="shots-value">4</span>
-          <button class="shots-btn" id="shots-plus">+</button>
-        </div>
-      </div>
-      <div class="form-row">
         <div class="field-label">End Type</div>
         <div class="toggle-group" id="field-end-type">
           <button class="toggle" data-value="Winner">Winner</button>
@@ -409,27 +444,70 @@
           <button class="toggle" data-value="Forced Error">Forced Err</button>
         </div>
       </div>
-      <div class="form-row">
-        <div class="field-label">Last Shot</div>
-        <div class="toggle-group" id="field-last-shot">
-          <button class="toggle" data-value="Forehand">Forehand</button>
-          <button class="toggle" data-value="Backhand">Backhand</button>
-          <button class="toggle" data-value="Serve">Serve</button>
-          <button class="toggle" data-value="Return">Return</button>
-          <button class="toggle" data-value="Volley / Overhead">Volley/OH</button>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="field-label">Net Approach</div>
-        <div class="toggle-group" id="field-net-approach">
-          <button class="toggle active" data-value="None">None</button>
-          <button class="toggle" data-value="Player A" id="tog-net-a">Player A</button>
-          <button class="toggle" data-value="Player B" id="tog-net-b">Player B</button>
-        </div>
-      </div>
       <div class="form-actions">
         <button class="btn-log" id="btn-log">Log Point</button>
         <button class="btn-danger" id="btn-undo">Undo Last</button>
+      </div>
+
+      <!-- Court Tracker -->
+      <div class="court-tracker" id="court-tracker">
+        <div class="court-tracker-hdr" id="court-tracker-hdr">
+          <span>Court Tracker</span>
+          <span class="court-shots-badge" id="court-shots-badge"></span>
+          <span class="court-chevron" id="court-chevron">▼</span>
+        </div>
+        <div class="court-tracker-body" id="court-tracker-body">
+          <div class="shot-legend">
+            <div class="shot-legend-item"><span class="legend-dot" style="background:#2a5298"></span>F Forehand</div>
+            <div class="shot-legend-item"><span class="legend-dot" style="background:#e87722"></span>B Backhand</div>
+            <div class="shot-legend-item"><span class="legend-dot" style="background:#2d8a4e"></span>V Volley/OH</div>
+            <div class="shot-legend-item"><span class="legend-dot" style="background:#7c3aed"></span>S Serve</div>
+          </div>
+          <div class="court-hint">Click court to place shot · Popup open: <kbd>F</kbd><kbd>B</kbd><kbd>V</kbd><kbd>S</kbd> = type · <kbd>T</kbd><kbd>C</kbd><kbd>P</kbd><kbd>N</kbd> = Topspin/sliCe/flat/none · <kbd>Esc</kbd> = cancel</div>
+          <div class="court-wrapper">
+            <svg id="court-svg" viewBox="-15 -15 250 470" width="220" height="430">
+              <rect x="0" y="0" width="220" height="440" fill="#afd8f7"/>
+              <rect x="0" y="0" width="28" height="440" fill="#92c9f0"/>
+              <rect x="192" y="0" width="28" height="440" fill="#92c9f0"/>
+              <line x1="0" y1="0" x2="220" y2="0" stroke="#fff" stroke-width="2"/>
+              <line x1="0" y1="440" x2="220" y2="440" stroke="#fff" stroke-width="2"/>
+              <line x1="0" y1="0" x2="0" y2="440" stroke="#fff" stroke-width="2"/>
+              <line x1="220" y1="0" x2="220" y2="440" stroke="#fff" stroke-width="2"/>
+              <line x1="28" y1="0" x2="28" y2="440" stroke="#fff" stroke-width="1.5"/>
+              <line x1="192" y1="0" x2="192" y2="440" stroke="#fff" stroke-width="1.5"/>
+              <line x1="28" y1="101" x2="192" y2="101" stroke="#fff" stroke-width="1.5"/>
+              <line x1="28" y1="339" x2="192" y2="339" stroke="#fff" stroke-width="1.5"/>
+              <line x1="110" y1="101" x2="110" y2="339" stroke="#fff" stroke-width="1.5"/>
+              <line x1="0" y1="220" x2="220" y2="220" stroke="#1e3a5f" stroke-width="4" opacity="0.85"/>
+              <circle cx="0" cy="220" r="4" fill="#1e3a5f" opacity="0.85"/>
+              <circle cx="220" cy="220" r="4" fill="#1e3a5f" opacity="0.85"/>
+              <text x="110" y="-4" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">Opp</text>
+              <text x="110" y="456" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">You (A)</text>
+              <g id="shot-dots-group"></g>
+            </svg>
+            <div class="shot-popup" id="shot-popup" style="display:none;">
+              <div class="popup-label">Shot type</div>
+              <div class="popup-row">
+                <button class="shot-type-btn" id="shot-type-F">F</button>
+                <button class="shot-type-btn" id="shot-type-B">B</button>
+                <button class="shot-type-btn" id="shot-type-V">V</button>
+                <button class="shot-type-btn" id="shot-type-S">S</button>
+              </div>
+              <div class="popup-label">Spin</div>
+              <div class="popup-row">
+                <button class="shot-spin-btn" id="shot-spin-topspin">Top</button>
+                <button class="shot-spin-btn" id="shot-spin-slice">Slice</button>
+                <button class="shot-spin-btn" id="shot-spin-flat">Flat</button>
+                <button class="shot-spin-btn" id="shot-spin-none">None</button>
+              </div>
+              <button class="popup-cancel" id="popup-cancel">× Cancel</button>
+            </div>
+          </div>
+          <div class="court-footer">
+            <span class="court-shot-count" id="court-shot-count">Click court to track shots</span>
+            <button class="btn-clear-shots" id="btn-clear-shots">Clear</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -485,14 +563,6 @@
         </div>
       </div>
       <div class="form-row">
-        <div class="field-label">Shots</div>
-        <div class="shots-control">
-          <button class="shots-btn" id="modal-shots-minus">−</button>
-          <span class="shots-value" id="modal-shots-value">4</span>
-          <button class="shots-btn" id="modal-shots-plus">+</button>
-        </div>
-      </div>
-      <div class="form-row">
         <div class="field-label">End Type</div>
         <div class="toggle-group" id="modal-end-type">
           <button class="toggle" data-value="Winner">Winner</button>
@@ -500,23 +570,9 @@
           <button class="toggle" data-value="Forced Error">Forced Err</button>
         </div>
       </div>
-      <div class="form-row">
-        <div class="field-label">Last Shot</div>
-        <div class="toggle-group" id="modal-last-shot">
-          <button class="toggle" data-value="Forehand">Forehand</button>
-          <button class="toggle" data-value="Backhand">Backhand</button>
-          <button class="toggle" data-value="Serve">Serve</button>
-          <button class="toggle" data-value="Return">Return</button>
-          <button class="toggle" data-value="Volley / Overhead">Volley/OH</button>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="field-label">Net Approach</div>
-        <div class="toggle-group" id="modal-net-approach">
-          <button class="toggle" data-value="None">None</button>
-          <button class="toggle" data-value="Player A" id="modal-net-a">Player A</button>
-          <button class="toggle" data-value="Player B" id="modal-net-b">Player B</button>
-        </div>
+      <div class="form-row" style="align-items:center;">
+        <div class="field-label">Shots</div>
+        <div id="modal-shot-info" style="font-size:12px;color:var(--muted);padding-top:2px;">No shots tracked</div>
       </div>
     </div>
     <div class="modal-footer">
@@ -562,6 +618,52 @@
       <div style="margin-top:14px;text-align:center;">
         <button class="btn-secondary" id="btn-back">← Back to Logger</button>
       </div>
+    </div>
+
+    <!-- Shot Heatmap (shown only when shots have been tracked) -->
+    <div class="card heatmap-section" id="heatmap-card" style="display:none;">
+      <h2>Shot Heatmap</h2>
+      <div class="heatmap-controls">
+        <div class="hm-group">
+          <span class="hm-group-label">Type</span>
+          <button class="hm-btn hm-active" data-type="all" id="hm-type-all">All</button>
+          <button class="hm-btn" data-type="F" id="hm-type-F">Forehand</button>
+          <button class="hm-btn" data-type="B" id="hm-type-B">Backhand</button>
+          <button class="hm-btn" data-type="V" id="hm-type-V">Volley</button>
+          <button class="hm-btn" data-type="S" id="hm-type-S">Serve</button>
+        </div>
+        <div class="hm-group">
+          <span class="hm-group-label">Spin</span>
+          <button class="hm-btn hm-active" data-spin="all" id="hm-spin-all">All</button>
+          <button class="hm-btn" data-spin="topspin" id="hm-spin-topspin">Topspin</button>
+          <button class="hm-btn" data-spin="slice" id="hm-spin-slice">Slice</button>
+          <button class="hm-btn" data-spin="flat" id="hm-spin-flat">Flat</button>
+        </div>
+      </div>
+      <div class="heatmap-court-wrap">
+        <svg id="heatmap-court" viewBox="-15 -15 250 470" width="220" height="430">
+          <rect x="0" y="0" width="220" height="440" fill="#afd8f7"/>
+          <rect x="0" y="0" width="28" height="440" fill="#92c9f0"/>
+          <rect x="192" y="0" width="28" height="440" fill="#92c9f0"/>
+          <line x1="0" y1="0" x2="220" y2="0" stroke="#fff" stroke-width="2"/>
+          <line x1="0" y1="440" x2="220" y2="440" stroke="#fff" stroke-width="2"/>
+          <line x1="0" y1="0" x2="0" y2="440" stroke="#fff" stroke-width="2"/>
+          <line x1="220" y1="0" x2="220" y2="440" stroke="#fff" stroke-width="2"/>
+          <line x1="28" y1="0" x2="28" y2="440" stroke="#fff" stroke-width="1.5"/>
+          <line x1="192" y1="0" x2="192" y2="440" stroke="#fff" stroke-width="1.5"/>
+          <line x1="28" y1="101" x2="192" y2="101" stroke="#fff" stroke-width="1.5"/>
+          <line x1="28" y1="339" x2="192" y2="339" stroke="#fff" stroke-width="1.5"/>
+          <line x1="110" y1="101" x2="110" y2="339" stroke="#fff" stroke-width="1.5"/>
+          <line x1="0" y1="220" x2="220" y2="220" stroke="#1e3a5f" stroke-width="4" opacity="0.85"/>
+          <circle cx="0" cy="220" r="4" fill="#1e3a5f" opacity="0.85"/>
+          <circle cx="220" cy="220" r="4" fill="#1e3a5f" opacity="0.85"/>
+          <text x="110" y="-4" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">Opp</text>
+          <text x="110" y="456" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">You (A)</text>
+        </svg>
+        <canvas id="heatmap-canvas" style="display:none;"></canvas>
+      </div>
+      <div class="heatmap-no-data" id="heatmap-no-data" style="display:none;">No shots tracked yet.</div>
+      <div class="hm-shot-count" id="hm-shot-count"></div>
     </div>
   </div>
 </div>
@@ -838,7 +940,6 @@ function renderHistory() {
 // EDIT MODAL
 // ─────────────────────────────────────────────────────────────────
 let editIndex = null;
-let modalShotCount = 4;
 
 function openEditModal(idx) {
   editIndex = idx;
@@ -857,19 +958,19 @@ function openEditModal(idx) {
   }
 
   setToggleVal('modal-winner', pt.Winner, true);
-  modalShotCount = pt['Number of Shots'];
-  document.getElementById('modal-shots-value').textContent = modalShotCount;
   setToggleVal('modal-end-type', pt['End Type'], false);
-  setToggleVal('modal-last-shot', pt['Last Shot'], false);
-  setToggleVal('modal-net-approach', pt['Net Approach'] || 'None', false);
 
   // Update player name buttons
   document.getElementById('modal-server-a').textContent = cfg.playerName;
   document.getElementById('modal-server-b').textContent = cfg.opponentName;
   document.getElementById('modal-winner-a').textContent = cfg.playerName;
   document.getElementById('modal-winner-b').textContent = cfg.opponentName;
-  document.getElementById('modal-net-a').textContent    = cfg.playerName;
-  document.getElementById('modal-net-b').textContent    = cfg.opponentName;
+
+  // Shot info (read-only)
+  const shots = pt.shots || [];
+  const n = shots.length;
+  document.getElementById('modal-shot-info').textContent =
+    n > 0 ? `${n} shot${n !== 1 ? 's' : ''} tracked on court` : 'No shots tracked';
 
   document.getElementById('edit-modal').classList.add('open');
 }
@@ -885,8 +986,6 @@ function saveEdit() {
   const secondSrv = firstSrv === 'Out' ? getToggleVal('modal-second-serve') : null;
   const winner   = getToggleVal('modal-winner');
   const endType  = getToggleVal('modal-end-type');
-  const lastShot = getToggleVal('modal-last-shot');
-  const netApp   = getToggleVal('modal-net-approach') || 'None';
 
   const missing = [];
   if (!server)    missing.push('Server');
@@ -894,9 +993,11 @@ function saveEdit() {
   if (firstSrv === 'Out' && !secondSrv) missing.push('2nd Serve');
   if (!winner)    missing.push('Winner');
   if (!endType)   missing.push('End Type');
-  if (!lastShot)  missing.push('Last Shot');
 
   if (missing.length) { alert(`Please fill in: ${missing.join(', ')}`); return; }
+
+  const shots = points[editIndex].shots || [];
+  const lastShot = shots.length > 0 ? { F: 'Forehand', B: 'Backhand', V: 'Volley / Overhead', S: 'Serve' }[shots[shots.length - 1].type] : points[editIndex]['Last Shot'];
 
   points[editIndex] = {
     ...points[editIndex],
@@ -904,10 +1005,10 @@ function saveEdit() {
     'First Serve':    firstSrv,
     'Second Serve':   secondSrv,
     Winner:           winner,
-    'Number of Shots': modalShotCount,
+    'Number of Shots': shots.length || points[editIndex]['Number of Shots'],
     'End Type':       endType,
     'Last Shot':      lastShot,
-    'Net Approach':   netApp,
+    'Net Approach':   inferNetApproach(shots, server),
   };
 
   rebuildScore();
@@ -961,7 +1062,6 @@ function initToggleGroup(groupId, usePlayerColors, onChangeCb) {
 // ─────────────────────────────────────────────────────────────────
 // POINT FORM LOGIC
 // ─────────────────────────────────────────────────────────────────
-let shotCount = 4;
 
 function resetForm() {
   setToggleVal('field-server', score.nextServer, true);
@@ -969,11 +1069,10 @@ function resetForm() {
   document.getElementById('row-second-serve').style.display = 'none';
   clearToggleGroup('field-second-serve');
   clearToggleGroup('field-winner');
-  setToggleVal('field-net-approach', 'None', false);
   clearToggleGroup('field-end-type');
-  clearToggleGroup('field-last-shot');
-  shotCount = 4;
-  document.getElementById('shots-value').textContent = 4;
+  currentPointShots = [];
+  renderShotDots();
+  updateCourtBadge();
 }
 
 function logPoint() {
@@ -982,8 +1081,6 @@ function logPoint() {
   const secondSrv = firstSrv === 'Out' ? getToggleVal('field-second-serve') : null;
   const winner   = getToggleVal('field-winner');
   const endType  = getToggleVal('field-end-type');
-  const lastShot = getToggleVal('field-last-shot');
-  const netApp   = getToggleVal('field-net-approach') || 'None';
 
   const missing = [];
   if (!server)    missing.push('Server');
@@ -991,8 +1088,11 @@ function logPoint() {
   if (firstSrv === 'Out' && !secondSrv) missing.push('2nd Serve');
   if (!winner)    missing.push('Winner');
   if (!endType)   missing.push('End Type');
-  if (!lastShot)  missing.push('Last Shot');
   if (missing.length) { alert(`Please fill in: ${missing.join(', ')}`); return; }
+
+  const shots   = [...currentPointShots];
+  const lastShot = shots.length > 0 ? { F: 'Forehand', B: 'Backhand', V: 'Volley / Overhead', S: 'Serve' }[shots[shots.length - 1].type] : null;
+  const netApp   = inferNetApproach(shots, server);
 
   points.push({
     Timestamp:        new Date().toISOString(),
@@ -1000,10 +1100,11 @@ function logPoint() {
     'First Serve':    firstSrv,
     'Second Serve':   secondSrv,
     Winner:           winner,
-    'Number of Shots': shotCount,
+    'Number of Shots': shots.length || null,
     'End Type':       endType,
     'Last Shot':      lastShot,
     'Net Approach':   netApp,
+    shots,
   });
 
   processPointOnState(winner === 'Player A' ? 'player' : 'opponent', score);
@@ -1033,6 +1134,11 @@ function showExportPage() {
   const suggested = s.setsWon.player >= s.setsWon.opponent ? 'W' : 'L';
   setToggleVal('field-match-result', suggested, false);
   buildSetFields();
+
+  // Show heatmap only if any shots were tracked
+  const hasShots = points.some(pt => pt.shots && pt.shots.length > 0);
+  document.getElementById('heatmap-card').style.display = hasShots ? 'block' : 'none';
+  if (hasShots) renderHeatmap();
 }
 
 function buildSetFields() {
@@ -1071,11 +1177,12 @@ function getSetVal(id) {
 function downloadMatchLog() {
   if (points.length === 0) { alert('No points logged.'); return; }
   const headers = ['Timestamp','Server','First Serve','Second Serve','Winner',
-                   'Number of Shots','End Type','Last Shot','Net Approach'];
+                   'Number of Shots','End Type','Last Shot','Net Approach','Shots (JSON)'];
   const rows = points.map(pt => [
     pt.Timestamp, pt.Server, pt['First Serve'],
     pt['Second Serve'] !== null ? pt['Second Serve'] : '',
-    pt.Winner, pt['Number of Shots'], pt['End Type'], pt['Last Shot'], pt['Net Approach'],
+    pt.Winner, pt['Number of Shots'] ?? '', pt['End Type'], pt['Last Shot'] ?? '', pt['Net Approach'] ?? '',
+    pt.shots && pt.shots.length ? JSON.stringify(pt.shots) : '',
   ]);
   const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
   const wb = XLSX.utils.book_new();
@@ -1135,7 +1242,6 @@ function updatePlayerLabels() {
   const pairs = [
     ['tog-server-a',  cfg.playerName],  ['tog-server-b',  cfg.opponentName],
     ['tog-winner-a',  cfg.playerName],  ['tog-winner-b',  cfg.opponentName],
-    ['tog-net-a',     cfg.playerName],  ['tog-net-b',     cfg.opponentName],
     ['first-srv-a',   cfg.playerName],  ['first-srv-b',   cfg.opponentName],
     ['score-name-a',  cfg.playerName],  ['score-name-b',  cfg.opponentName],
   ];
@@ -1153,9 +1259,7 @@ initToggleGroup('field-match-result', false);
 // Point form toggles
 initToggleGroup('field-server', true);
 initToggleGroup('field-winner', true);
-initToggleGroup('field-net-approach', false);
 initToggleGroup('field-end-type', false);
-initToggleGroup('field-last-shot', false);
 initToggleGroup('field-first-serve', false, val => {
   document.getElementById('row-second-serve').style.display = val === 'Out' ? 'flex' : 'none';
   if (val === 'In') clearToggleGroup('field-second-serve');
@@ -1166,36 +1270,23 @@ initToggleGroup('field-second-serve', false, val => {
     const srv = getToggleVal('field-server');
     setToggleVal('field-winner', srv === 'Player A' ? 'Player B' : 'Player A', true);
     setToggleVal('field-end-type', 'Unforced Error', false);
-    setToggleVal('field-last-shot', 'Serve', false);
-    shotCount = 1; document.getElementById('shots-value').textContent = 1;
+    // Add a serve shot at center court if no shots yet
+    if (currentPointShots.length === 0) {
+      currentPointShots.push({ nx: 0.5, ny: 1.0, type: 'S', spin: 'flat', seq: 1 });
+      renderShotDots(); updateCourtBadge();
+    }
   }
 });
 
 // Modal toggles
 initToggleGroup('modal-server', true);
 initToggleGroup('modal-winner', true);
-initToggleGroup('modal-net-approach', false);
 initToggleGroup('modal-end-type', false);
-initToggleGroup('modal-last-shot', false);
 initToggleGroup('modal-first-serve', false, val => {
   document.getElementById('modal-row-second-serve').style.display = val === 'Out' ? 'flex' : 'none';
   if (val === 'In') clearToggleGroup('modal-second-serve');
 });
 initToggleGroup('modal-second-serve', false);
-
-// Shots +/−
-document.getElementById('shots-minus').addEventListener('click', () => {
-  if (shotCount > 1) { shotCount--; document.getElementById('shots-value').textContent = shotCount; }
-});
-document.getElementById('shots-plus').addEventListener('click', () => {
-  shotCount++; document.getElementById('shots-value').textContent = shotCount;
-});
-document.getElementById('modal-shots-minus').addEventListener('click', () => {
-  if (modalShotCount > 1) { modalShotCount--; document.getElementById('modal-shots-value').textContent = modalShotCount; }
-});
-document.getElementById('modal-shots-plus').addEventListener('click', () => {
-  modalShotCount++; document.getElementById('modal-shots-value').textContent = modalShotCount;
-});
 
 // Logger buttons
 document.getElementById('btn-log').addEventListener('click', logPoint);
@@ -1253,8 +1344,19 @@ document.getElementById('btn-start').addEventListener('click', () => {
   showPage('page-logger');
 });
 
-// Keyboard: Enter to log point
+// Keyboard shortcuts
 document.addEventListener('keydown', e => {
+  // Court tracker shortcuts (intercept when shot popup is open)
+  const popup = document.getElementById('shot-popup');
+  if (popup && popup.style.display === 'block') {
+    const k = e.key.toUpperCase();
+    if (['F','B','V','S'].includes(k)) { e.preventDefault(); selectShotType(k); return; }
+    if (k === 'T') { e.preventDefault(); selectShotSpin('topspin'); return; }
+    if (k === 'C') { e.preventDefault(); selectShotSpin('slice'); return; }
+    if (k === 'P') { e.preventDefault(); selectShotSpin('flat'); return; }
+    if (k === 'N') { e.preventDefault(); selectShotSpin('none'); return; }
+    if (e.key === 'Escape') { cancelShot(); return; }
+  }
   if (e.key === 'Enter' && !document.getElementById('edit-modal').classList.contains('open')
       && document.getElementById('page-logger').classList.contains('active')) {
     e.preventDefault();
@@ -1364,6 +1466,233 @@ async function uploadToSupabase() {
 }
 
 document.getElementById('btn-upload').addEventListener('click', uploadToSupabase);
+
+// ─────────────────────────────────────────────────────────────────
+// COURT TRACKER
+// ─────────────────────────────────────────────────────────────────
+const SHOT_COLORS  = { F: '#2a5298', B: '#e87722', V: '#2d8a4e', S: '#7c3aed' };
+const SHOT_TYPE_LABEL = { F: 'Forehand', B: 'Backhand', V: 'Volley / Overhead', S: 'Serve' };
+const DEFAULT_SPIN = { F: 'topspin', B: 'topspin', V: 'none', S: 'flat' };
+const COURT_W = 220, COURT_H = 440;
+
+let currentPointShots = [];
+let pendingNx = null, pendingNy = null;
+let pendingType = null, pendingSpin = null;
+let courtOpen = false;
+
+function toggleCourt() {
+  courtOpen = !courtOpen;
+  document.getElementById('court-tracker-body').classList.toggle('open', courtOpen);
+  document.getElementById('court-chevron').classList.toggle('open', courtOpen);
+}
+
+function svgPoint(e) {
+  const svg = document.getElementById('court-svg');
+  const rect = svg.getBoundingClientRect();
+  const vb = svg.viewBox.baseVal;
+  return {
+    sx: (e.clientX - rect.left) * (vb.width  / rect.width)  + vb.x,
+    sy: (e.clientY - rect.top)  * (vb.height / rect.height) + vb.y,
+  };
+}
+
+function svgFromNorm(nx, ny) { return { sx: nx * COURT_W, sy: ny * COURT_H }; }
+
+function handleCourtClick(e) {
+  e.stopPropagation();
+  const { sx, sy } = svgPoint(e);
+  pendingNx = sx / COURT_W;
+  pendingNy = sy / COURT_H;
+  pendingType = null;
+  pendingSpin = null;
+  ['F','B','V','S'].forEach(t => document.getElementById('shot-type-' + t).className = 'shot-type-btn');
+  ['topspin','slice','flat','none'].forEach(s => document.getElementById('shot-spin-' + s).className = 'shot-spin-btn');
+  const popup   = document.getElementById('shot-popup');
+  const wrapper = document.querySelector('.court-wrapper');
+  const wRect   = wrapper.getBoundingClientRect();
+  let left = e.clientX - wRect.left + 8;
+  let top  = e.clientY - wRect.top  - 55;
+  if (left + 168 > wRect.width)  left = e.clientX - wRect.left - 176;
+  if (top < 0)                   top  = e.clientY - wRect.top  + 10;
+  popup.style.left = Math.max(0, left) + 'px';
+  popup.style.top  = Math.max(0, top)  + 'px';
+  popup.style.display = 'block';
+  renderShotDots();
+}
+
+function cancelShot() {
+  pendingNx = null; pendingNy = null;
+  pendingType = null; pendingSpin = null;
+  document.getElementById('shot-popup').style.display = 'none';
+  renderShotDots();
+}
+
+function selectShotType(type) {
+  pendingType = type;
+  ['F','B','V','S'].forEach(t =>
+    document.getElementById('shot-type-' + t).className = 'shot-type-btn' + (t === type ? ' sel-' + t : '')
+  );
+  if (pendingSpin !== null) confirmShot();
+}
+
+function selectShotSpin(spin) {
+  pendingSpin = spin;
+  ['topspin','slice','flat','none'].forEach(s =>
+    document.getElementById('shot-spin-' + s).className = 'shot-spin-btn' + (s === spin ? ' sel' : '')
+  );
+  if (pendingType !== null) confirmShot();
+}
+
+function confirmShot() {
+  if (pendingNx === null || !pendingType) return;
+  const spin = pendingSpin !== null ? pendingSpin : DEFAULT_SPIN[pendingType];
+  currentPointShots.push({ nx: pendingNx, ny: pendingNy, type: pendingType, spin, seq: currentPointShots.length + 1 });
+  pendingNx = null; pendingNy = null;
+  pendingType = null; pendingSpin = null;
+  document.getElementById('shot-popup').style.display = 'none';
+  renderShotDots();
+  updateCourtBadge();
+}
+
+function clearShots() {
+  currentPointShots = [];
+  cancelShot();
+  updateCourtBadge();
+}
+
+function updateCourtBadge() {
+  const n = currentPointShots.length;
+  document.getElementById('court-shots-badge').textContent = n > 0 ? n + ' shot' + (n !== 1 ? 's' : '') : '';
+  document.getElementById('court-shot-count').textContent  = n > 0 ? n + ' shot' + (n !== 1 ? 's' : '') + ' logged' : 'Click court to track shots';
+}
+
+function renderShotDots() {
+  const g = document.getElementById('shot-dots-group');
+  if (!g) return;
+  let html = '';
+  currentPointShots.forEach(s => {
+    const { sx, sy } = svgFromNorm(s.nx, s.ny);
+    const c = SHOT_COLORS[s.type] || '#888';
+    html += `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="8" fill="${c}" opacity="0.88" stroke="white" stroke-width="1.5"/>` +
+            `<text x="${sx.toFixed(1)}" y="${(sy + 3.5).toFixed(1)}" text-anchor="middle" font-size="8.5" font-weight="bold" fill="white" font-family="sans-serif" pointer-events="none">${s.type}</text>`;
+  });
+  if (pendingNx !== null) {
+    const { sx, sy } = svgFromNorm(pendingNx, pendingNy);
+    html += `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="8" fill="#888" opacity="0.35" stroke="white" stroke-width="1.5"/>`;
+  }
+  g.innerHTML = html;
+}
+
+function inferNetApproach(shots, server) {
+  if (!shots || shots.length === 0) return 'None';
+  const lastTwo = shots.slice(-2);
+  const volleyShot = [...lastTwo].reverse().find(s => s.type === 'V');
+  if (!volleyShot) return 'None';
+  const returner = server === 'Player A' ? 'Player B' : 'Player A';
+  return volleyShot.seq % 2 === 1 ? server : returner;
+}
+
+(function initCourt() {
+  document.getElementById('court-tracker-hdr').addEventListener('click', toggleCourt);
+  document.getElementById('court-svg').addEventListener('click', handleCourtClick);
+  document.getElementById('popup-cancel').addEventListener('click', e => { e.stopPropagation(); cancelShot(); });
+  document.getElementById('btn-clear-shots').addEventListener('click', clearShots);
+  ['F','B','V','S'].forEach(t =>
+    document.getElementById('shot-type-' + t).addEventListener('click', e => { e.stopPropagation(); selectShotType(t); })
+  );
+  ['topspin','slice','flat','none'].forEach(s =>
+    document.getElementById('shot-spin-' + s).addEventListener('click', e => { e.stopPropagation(); selectShotSpin(s); })
+  );
+  document.addEventListener('click', e => {
+    const popup = document.getElementById('shot-popup');
+    if (popup.style.display === 'block' && !popup.contains(e.target) && !e.target.closest('#court-svg')) {
+      cancelShot();
+    }
+  });
+})();
+
+// ─────────────────────────────────────────────────────────────────
+// HEATMAP
+// ─────────────────────────────────────────────────────────────────
+let hmType = 'all', hmSpin = 'all';
+
+(function initHeatmapControls() {
+  ['all','F','B','V','S'].forEach(t => {
+    document.getElementById('hm-type-' + t).addEventListener('click', () => {
+      hmType = t;
+      document.querySelectorAll('.hm-btn[data-type]').forEach(b => b.classList.remove('hm-active'));
+      document.getElementById('hm-type-' + t).classList.add('hm-active');
+      renderHeatmap();
+    });
+  });
+  ['all','topspin','slice','flat'].forEach(s => {
+    document.getElementById('hm-spin-' + s).addEventListener('click', () => {
+      hmSpin = s;
+      document.querySelectorAll('.hm-btn[data-spin]').forEach(b => b.classList.remove('hm-active'));
+      document.getElementById('hm-spin-' + s).classList.add('hm-active');
+      renderHeatmap();
+    });
+  });
+})();
+
+function renderHeatmap() {
+  const canvas  = document.getElementById('heatmap-canvas');
+  const noData  = document.getElementById('heatmap-no-data');
+  const countEl = document.getElementById('hm-shot-count');
+  if (!canvas) return;
+
+  const shots = [];
+  for (const pt of points) {
+    if (!pt.shots) continue;
+    for (const s of pt.shots) {
+      if (hmType !== 'all' && s.type !== hmType) continue;
+      if (hmSpin !== 'all' && s.spin !== hmSpin) continue;
+      shots.push(s);
+    }
+  }
+
+  if (shots.length === 0) {
+    canvas.style.display = 'none';
+    noData.style.display = 'block';
+    countEl.textContent  = '';
+    return;
+  }
+  noData.style.display = 'none';
+
+  const svgEl = document.getElementById('heatmap-court');
+  const W = svgEl.clientWidth  || 220;
+  const H = svgEl.clientHeight || 430;
+  canvas.width  = W;
+  canvas.height = H;
+  canvas.style.display = 'block';
+
+  // viewBox is "-15 -15 250 470" → court 0,0-220,440 maps into canvas
+  const scaleX = W / 250, scaleY = H / 470;
+  const offX   = 15 * scaleX, offY = 15 * scaleY;
+  const cW     = COURT_W * scaleX, cH = COURT_H * scaleY;
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  const rad = Math.max(14, Math.min(24, W / 10));
+  for (const s of shots) {
+    const cx  = offX + s.nx * cW;
+    const cy  = offY + s.ny * cH;
+    const hex = SHOT_COLORS[s.type] || '#888';
+    const r   = parseInt(hex.slice(1, 3), 16);
+    const g   = parseInt(hex.slice(3, 5), 16);
+    const b   = parseInt(hex.slice(5, 7), 16);
+    const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
+    grd.addColorStop(0, `rgba(${r},${g},${b},0.7)`);
+    grd.addColorStop(1, `rgba(${r},${g},${b},0)`);
+    ctx.beginPath();
+    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+    ctx.fillStyle = grd;
+    ctx.fill();
+  }
+
+  countEl.textContent = `${shots.length} shot${shots.length !== 1 ? 's' : ''} shown`;
+}
 </script>
 </body>
 </html>
