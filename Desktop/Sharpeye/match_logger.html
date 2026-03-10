@@ -1,0 +1,1698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SharpEye Match Logger</title>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --blue: #1e3a5f;
+      --blue-light: #2a5298;
+      --orange: #e87722;
+      --orange-light: #f4a261;
+      --bg: #f0f4f8;
+      --card: #ffffff;
+      --border: #d1d9e0;
+      --text: #1a2a3a;
+      --muted: #6b7a8d;
+      --success: #2d8a4e;
+      --danger: #c0392b;
+      --toggle-off: #e8ecf0;
+      --toggle-off-text: #4a5568;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+           background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── Pages ── */
+    .page { display: none; }
+    .page.active { display: block; }
+    #page-logger.active { display: flex; flex-direction: column; height: 100vh; }
+
+    /* ── Shared ── */
+    .card { background: var(--card); border-radius: var(--radius);
+            border: 1px solid var(--border); padding: 28px; margin-bottom: 16px; }
+    h1 { font-size: 22px; font-weight: 700; color: var(--blue); }
+    h2 { font-size: 18px; font-weight: 600; color: var(--blue); margin-bottom: 20px; }
+    h3 { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase;
+         letter-spacing: 0.05em; margin-bottom: 12px; }
+    label { display: block; font-size: 13px; font-weight: 500; color: var(--muted);
+            margin-bottom: 5px; }
+    input[type="text"], input[type="number"], input[type="date"], select {
+      width: 100%; padding: 9px 12px; border: 1px solid var(--border);
+      border-radius: var(--radius); font-size: 14px; color: var(--text);
+      background: #fff; transition: border 0.15s; }
+    input:focus, select:focus { outline: none; border-color: var(--blue); }
+    .field { margin-bottom: 14px; }
+    .error-msg { color: var(--danger); font-size: 13px; margin-top: 6px; display: none; }
+
+    /* ── Toggle groups ── */
+    .toggle-group { display: flex; gap: 6px; flex-wrap: wrap; }
+    .toggle { padding: 8px 14px; border: 1.5px solid var(--border); border-radius: var(--radius);
+              background: var(--toggle-off); color: var(--toggle-off-text);
+              font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.12s; }
+    .toggle:hover { border-color: var(--blue); }
+    .toggle.active   { background: var(--blue);   color: #fff; border-color: var(--blue); }
+    .toggle.active-b { background: var(--orange); color: #fff; border-color: var(--orange); }
+
+    /* ── Buttons ── */
+    .btn-primary { background: var(--blue); color: #fff; border: none;
+                   border-radius: var(--radius); padding: 11px 22px; font-size: 14px;
+                   font-weight: 600; cursor: pointer; transition: background 0.15s; }
+    .btn-primary:hover { background: var(--blue-light); }
+    .btn-secondary { background: transparent; color: var(--blue); border: 1.5px solid var(--blue);
+                     border-radius: var(--radius); padding: 9px 18px; font-size: 13px;
+                     font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .btn-secondary:hover { background: var(--blue); color: #fff; }
+    .btn-danger { background: transparent; color: var(--danger); border: 1.5px solid var(--danger);
+                  border-radius: var(--radius); padding: 9px 18px; font-size: 13px;
+                  font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .btn-danger:hover { background: var(--danger); color: #fff; }
+
+    /* ── Setup Page ── */
+    #page-setup { max-width: 860px; margin: 0 auto; padding: 32px 20px; }
+    .setup-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+    .logo { height: 40px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+
+    /* ── Logger Page ── */
+    .logger-bar { background: var(--blue); color: #fff; padding: 10px 20px;
+                  display: flex; align-items: center; justify-content: space-between;
+                  flex-shrink: 0; }
+    .logger-bar h1 { font-size: 16px; color: #fff; }
+
+    .logger-body { display: grid; grid-template-columns: 240px 1fr 280px;
+                   flex: 1; overflow: hidden; }
+
+    /* Score panel */
+    .score-panel { background: var(--blue); color: #fff; padding: 20px 16px;
+                   display: flex; flex-direction: column; gap: 14px;
+                   border-right: 1px solid rgba(255,255,255,0.1); overflow-y: auto; }
+    .score-block-label { font-size: 10px; font-weight: 600; text-transform: uppercase;
+                         letter-spacing: 0.08em; color: rgba(255,255,255,0.5); margin-bottom: 5px; }
+    .score-row { display: flex; align-items: center; gap: 6px; }
+    .player-name-label { font-size: 12px; color: rgba(255,255,255,0.65); flex: 1;
+                         white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .player-name-label.is-serving::after { content: ' ●'; color: var(--orange-light); font-size: 9px; }
+    .score-num { font-size: 24px; font-weight: 700; min-width: 32px; text-align: center; }
+    .score-num.pa { color: #fff; }
+    .score-num.pb { color: var(--orange-light); }
+    .score-sep { font-size: 18px; color: rgba(255,255,255,0.35); }
+    .score-divider { border: none; border-top: 1px solid rgba(255,255,255,0.1); }
+    .completed-sets { display: flex; flex-direction: column; gap: 3px; }
+    .completed-set-row { font-size: 12px; color: rgba(255,255,255,0.55); }
+    .game-score-display { font-size: 20px; font-weight: 700; text-align: center; padding: 6px 0; }
+    .game-score-display .a { color: #fff; }
+    .game-score-display .b { color: var(--orange-light); }
+    .game-score-display .sep { color: rgba(255,255,255,0.35); margin: 0 5px; }
+    .deuce-label { font-size: 16px; font-weight: 600; text-align: center;
+                   color: rgba(255,255,255,0.85); padding: 6px 0; }
+    .points-logged { font-size: 11px; color: rgba(255,255,255,0.4); text-align: center; }
+    .match-over-score { background: var(--success); border-radius: 6px; padding: 8px;
+                        text-align: center; font-size: 13px; font-weight: 600; }
+
+    /* Point form panel */
+    .point-form-panel { overflow-y: auto; padding: 16px 20px; background: var(--bg); }
+    .form-row { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px;
+                padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .form-row:last-child { border-bottom: none; }
+    .field-label { font-size: 12px; font-weight: 600; color: var(--muted);
+                   min-width: 86px; padding-top: 9px; }
+    .form-actions { display: flex; gap: 8px; margin-top: 4px; padding-top: 4px; }
+    .btn-log { flex: 1; background: var(--orange); color: #fff; border: none;
+               border-radius: var(--radius); padding: 12px; font-size: 15px;
+               font-weight: 700; cursor: pointer; transition: background 0.15s; }
+    .btn-log:hover { background: var(--orange-light); }
+
+    /* History panel */
+    .history-panel { overflow-y: auto; background: var(--card);
+                     border-left: 1px solid var(--border); display: flex; flex-direction: column; }
+    .history-header { padding: 12px 14px; border-bottom: 1px solid var(--border);
+                      display: flex; align-items: center; justify-content: space-between;
+                      flex-shrink: 0; background: var(--card); position: sticky; top: 0; z-index: 1; }
+    .history-header span { font-size: 12px; font-weight: 700; color: var(--blue);
+                           text-transform: uppercase; letter-spacing: 0.05em; }
+    .history-count { font-size: 12px; color: var(--muted); }
+    .history-list { flex: 1; overflow-y: auto; }
+    .history-empty { padding: 24px; text-align: center; font-size: 13px; color: var(--muted); }
+    .history-item { padding: 9px 14px; border-bottom: 1px solid #f0f4f8; cursor: pointer;
+                    transition: background 0.1s; display: flex; flex-direction: column; gap: 2px; }
+    .history-item:hover { background: #f5f8fc; }
+    .history-item:last-child { border-bottom: none; }
+    .hi-top { display: flex; align-items: center; gap: 6px; }
+    .hi-num { font-size: 11px; font-weight: 700; color: var(--muted); min-width: 26px; }
+    .hi-score { font-size: 11px; color: var(--muted); background: #f0f4f8;
+                padding: 1px 6px; border-radius: 4px; }
+    .hi-bottom { font-size: 12px; color: var(--text); padding-left: 32px; }
+    .tag { display: inline-block; font-size: 10px; font-weight: 600; padding: 1px 5px;
+           border-radius: 3px; margin-right: 3px; }
+    .tag-a  { background: #dce9f5; color: var(--blue); }
+    .tag-b  { background: #fde8d5; color: var(--orange); }
+    .tag-w  { background: #d4edda; color: var(--success); }
+    .tag-ue { background: #fde8d5; color: var(--danger); }
+    .tag-fe { background: #fef3cd; color: #856404; }
+
+    /* ── Edit Modal ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+                     z-index: 1000; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal-box { background: var(--card); border-radius: var(--radius); width: 520px;
+                 max-width: 95vw; max-height: 90vh; overflow-y: auto;
+                 box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+    .modal-header { display: flex; align-items: center; justify-content: space-between;
+                    padding: 16px 20px; border-bottom: 1px solid var(--border);
+                    position: sticky; top: 0; background: var(--card); z-index: 1; }
+    .modal-header h2 { font-size: 16px; margin: 0; color: var(--blue); }
+    .modal-close { background: none; border: none; font-size: 20px; cursor: pointer;
+                   color: var(--muted); line-height: 1; padding: 0 4px; }
+    .modal-close:hover { color: var(--text); }
+    .modal-body { padding: 16px 20px; }
+    .modal-footer { padding: 12px 20px; border-top: 1px solid var(--border);
+                    display: flex; gap: 8px; justify-content: space-between; }
+
+    /* ── Export Page ── */
+    #page-export { max-width: 580px; margin: 0 auto; padding: 32px 20px; }
+    .final-summary { background: var(--bg); border-radius: var(--radius); padding: 14px;
+                     margin-bottom: 18px; font-size: 15px; text-align: center; font-weight: 600; }
+    .export-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+    .export-actions .btn-primary { text-align: center; font-size: 15px; padding: 13px; }
+
+    /* ── Court Tracker ── */
+    .court-tracker { margin-top: 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); }
+    .court-tracker-hdr { display: flex; align-items: center; padding: 9px 14px; cursor: pointer; user-select: none; gap: 8px; }
+    .court-tracker-hdr > span:first-child { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.05em; flex: 1; }
+    .court-shots-badge { font-size: 11px; color: var(--muted); }
+    .court-chevron { font-size: 10px; color: var(--muted); transition: transform 0.2s; display: inline-block; }
+    .court-chevron.open { transform: rotate(180deg); }
+    .court-tracker-body { display: none; padding: 10px 12px; border-top: 1px solid var(--border); }
+    .court-tracker-body.open { display: block; }
+    .court-hint { font-size: 10px; color: var(--muted); margin-bottom: 8px; line-height: 1.6; }
+    .court-hint kbd { background: #e8ecf0; border-radius: 3px; padding: 1px 4px; font-family: monospace; font-size: 10px; }
+    .court-wrapper { position: relative; display: flex; justify-content: center; margin-bottom: 8px; }
+    #court-svg { cursor: crosshair; display: block; border-radius: 3px; }
+    .court-footer { display: flex; align-items: center; justify-content: space-between; }
+    .court-shot-count { font-size: 11px; color: var(--muted); }
+    .shot-legend { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+    .shot-legend-item { display: flex; align-items: center; gap: 3px; font-size: 10px; color: var(--muted); }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+    .btn-clear-shots { font-size: 11px; padding: 3px 10px; background: none; border: 1px solid var(--border); border-radius: 4px; color: var(--muted); cursor: pointer; }
+    .btn-clear-shots:hover { border-color: var(--danger); color: var(--danger); }
+    /* Shot popup */
+    .shot-popup { position: absolute; background: #fff; border: 1.5px solid var(--border); border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.18); padding: 8px; z-index: 200; width: 162px; }
+    .popup-label { font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+    .popup-row { display: flex; gap: 3px; margin-bottom: 5px; }
+    .shot-type-btn { flex: 1; padding: 5px 0; font-size: 11px; font-weight: 700; border: 1.5px solid var(--border); border-radius: 5px; cursor: pointer; background: var(--toggle-off); color: var(--toggle-off-text); transition: all 0.1s; }
+    .shot-type-btn.sel-F { background: #2a5298; color: #fff; border-color: #2a5298; }
+    .shot-type-btn.sel-B { background: #e87722; color: #fff; border-color: #e87722; }
+    .shot-type-btn.sel-V { background: #2d8a4e; color: #fff; border-color: #2d8a4e; }
+    .shot-type-btn.sel-S { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+    .shot-spin-btn { flex: 1; padding: 4px 0; font-size: 9px; font-weight: 600; border: 1.5px solid var(--border); border-radius: 5px; cursor: pointer; background: var(--toggle-off); color: var(--toggle-off-text); transition: all 0.1s; }
+    .shot-spin-btn.sel { background: #555; color: #fff; border-color: #555; }
+    .popup-cancel { width: 100%; margin-top: 2px; padding: 3px; font-size: 10px; background: none; border: none; color: var(--muted); cursor: pointer; }
+    .popup-cancel:hover { color: var(--danger); }
+    /* Heatmap */
+    .heatmap-section { margin-top: 16px; }
+    .heatmap-controls { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+    .hm-group { display: flex; align-items: center; gap: 4px; }
+    .hm-group-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+    .hm-btn { padding: 4px 9px; font-size: 11px; font-weight: 600; border: 1.5px solid var(--border); border-radius: 5px; cursor: pointer; background: var(--toggle-off); color: var(--toggle-off-text); transition: all 0.1s; }
+    .hm-btn.hm-active { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .hm-btn[data-type="F"].hm-active { background: #2a5298; border-color: #2a5298; }
+    .hm-btn[data-type="B"].hm-active { background: #e87722; border-color: #e87722; }
+    .hm-btn[data-type="V"].hm-active { background: #2d8a4e; border-color: #2d8a4e; }
+    .hm-btn[data-type="S"].hm-active { background: #7c3aed; border-color: #7c3aed; }
+    .hm-btn[data-spin="topspin"].hm-active { background: #2a5298; border-color: #2a5298; }
+    .hm-btn[data-spin="slice"].hm-active   { background: #e87722; border-color: #e87722; }
+    .hm-btn[data-spin="flat"].hm-active    { background: #555;    border-color: #555; }
+    .heatmap-court-wrap { position: relative; display: inline-block; }
+    #heatmap-canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
+    .heatmap-no-data { font-size: 13px; color: var(--muted); text-align: center; padding: 20px 0; }
+    .hm-shot-count { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+    /* ── Mobile ── */
+    .mobile-tabs { display: none; }
+
+    @media (max-width: 700px) {
+      /* Setup */
+      #page-setup { padding: 16px 12px; }
+      .card { padding: 16px; }
+      .form-grid { grid-template-columns: 1fr; gap: 16px; }
+      .setup-header h1 { font-size: 18px; }
+
+      /* Logger bar */
+      .logger-bar { padding: 8px 12px; }
+      .logger-bar h1 { font-size: 13px; }
+      #btn-end { font-size: 11px; padding: 5px 10px; }
+
+      /* Mobile tab bar */
+      .mobile-tabs {
+        display: flex;
+        background: #162e4d;
+        flex-shrink: 0;
+      }
+      .mobile-tab {
+        flex: 1; padding: 10px 4px; background: none; border: none;
+        color: rgba(255,255,255,0.55); font-size: 11px; font-weight: 700;
+        cursor: pointer; text-transform: uppercase; letter-spacing: 0.06em;
+        border-bottom: 2px solid transparent; transition: all 0.15s;
+      }
+      .mobile-tab.active { color: #fff; border-bottom-color: var(--orange); }
+
+      /* Logger body: stacked, one panel visible at a time */
+      #page-logger.active { height: 100dvh; height: 100vh; }
+      .logger-body { display: flex; flex-direction: column; }
+      .score-panel, .point-form-panel, .history-panel { display: none; }
+      .score-panel.mob-active {
+        display: flex; flex: 1; overflow-y: auto;
+        flex-direction: row; flex-wrap: wrap; gap: 10px; align-content: flex-start;
+      }
+      .score-panel.mob-active > div,
+      .score-panel.mob-active > hr { flex: 1 1 45%; }
+      .score-panel.mob-active .points-logged,
+      .score-panel.mob-active #match-over-score { flex: 1 1 100%; }
+      .point-form-panel.mob-active { display: block; flex: 1; overflow-y: auto; }
+      .history-panel.mob-active { display: flex; flex: 1; flex-direction: column; overflow: hidden; }
+
+      /* Bigger touch targets */
+      .toggle { padding: 12px 14px; font-size: 14px; min-height: 44px; }
+      .toggle-group { gap: 8px; }
+      .form-row { flex-direction: column; gap: 6px; margin-bottom: 14px; padding-bottom: 14px; }
+      .field-label { min-width: unset; padding-top: 0; font-size: 13px; }
+      .btn-log { padding: 18px; font-size: 17px; }
+      .btn-danger { padding: 14px 18px; font-size: 14px; }
+      .point-form-panel { padding: 14px 12px; }
+      .form-actions { flex-direction: column; }
+
+      /* Export page */
+      #page-export { padding: 16px 12px; }
+      .export-actions .btn-primary { padding: 16px; font-size: 16px; }
+      .modal-box { width: 100%; border-radius: 0; max-height: 100vh; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ PAGE 1 — SETUP ═══════════════════════════════ -->
+<div id="page-setup" class="page active">
+  <div style="max-width:860px;margin:0 auto;padding:32px 20px;">
+    <div class="setup-header">
+      <img src="Match Analysis/latex/sharpeye_logo.png" alt="" class="logo" onerror="this.style.display='none'">
+      <h1>Match Logger</h1>
+    </div>
+    <div class="card">
+      <h2>Match Setup</h2>
+      <div class="form-grid">
+        <div>
+          <h3>Your Player</h3>
+          <div class="field"><label>Name</label>
+            <input type="text" id="cfg-player-name" placeholder="First Last"></div>
+          <div class="field"><label>UTR</label>
+            <input type="number" id="cfg-player-utr" min="1" max="16" step="0.01" placeholder="e.g. 9.83"></div>
+          <div class="field"><label>Gender</label>
+            <select id="cfg-player-gender">
+              <option value="M">Male</option><option value="F">Female</option>
+            </select></div>
+        </div>
+        <div>
+          <h3>Opponent</h3>
+          <div class="field"><label>Name</label>
+            <input type="text" id="cfg-opponent-name" placeholder="First Last"></div>
+          <div class="field"><label>UTR</label>
+            <input type="number" id="cfg-opponent-utr" min="1" max="16" step="0.01" placeholder="e.g. 10.16"></div>
+        </div>
+        <div>
+          <h3>Match Details</h3>
+          <div class="field"><label>Date</label>
+            <input type="date" id="cfg-match-date"></div>
+          <div class="field"><label>Organization</label>
+            <input type="text" id="cfg-org-name" placeholder="e.g. OCMTENS"></div>
+          <div class="field"><label>Scoring</label>
+            <select id="cfg-ad-format">
+              <option value="TRUE">Advantage</option><option value="FALSE">No-Ad</option>
+            </select></div>
+          <div class="field"><label>Third Set</label>
+            <select id="cfg-third-set">
+              <option value="tiebreak">Match Tiebreak (to 10)</option>
+              <option value="full">Full Third Set</option>
+            </select></div>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:20px;">
+        <label>First Server</label>
+        <div class="toggle-group" id="cfg-first-server">
+          <button class="toggle active" data-value="Player A" id="first-srv-a">Player A</button>
+          <button class="toggle"        data-value="Player B" id="first-srv-b">Player B</button>
+        </div>
+      </div>
+      <p id="setup-error" class="error-msg">Please fill in all required fields.</p>
+      <button class="btn-primary" id="btn-start" style="font-size:15px;padding:12px 28px;">
+        Start Logging →
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════ PAGE 2 — LOGGER ═══════════════════════════════ -->
+<div id="page-logger" class="page">
+
+  <div class="logger-bar">
+    <h1 id="logger-title">Player A vs Player B</h1>
+    <button class="btn-secondary" id="btn-end"
+            style="border-color:rgba(255,255,255,0.5);color:#fff;font-size:12px;padding:6px 14px;">
+      End Match &amp; Export
+    </button>
+  </div>
+
+  <!-- Mobile tab bar (hidden on desktop via CSS) -->
+  <div class="mobile-tabs">
+    <button class="mobile-tab active" data-panel="point-form-panel">Log Point</button>
+    <button class="mobile-tab" data-panel="score-panel">Score</button>
+    <button class="mobile-tab" data-panel="history-panel">History</button>
+  </div>
+
+  <div class="logger-body">
+
+    <!-- Score Panel -->
+    <div class="score-panel">
+      <div>
+        <div class="score-block-label">Match</div>
+        <div class="score-row">
+          <span class="player-name-label" id="score-name-a">A</span>
+          <span class="score-num pa" id="score-sets-a">0</span>
+          <span class="score-sep">–</span>
+          <span class="score-num pb" id="score-sets-b">0</span>
+          <span class="player-name-label" id="score-name-b" style="text-align:right;">B</span>
+        </div>
+      </div>
+      <hr class="score-divider">
+      <div id="completed-sets" class="completed-sets"></div>
+      <div>
+        <div class="score-block-label">Current Set</div>
+        <div class="score-row">
+          <span class="score-num pa" id="score-games-a">0</span>
+          <span class="score-sep">–</span>
+          <span class="score-num pb" id="score-games-b">0</span>
+        </div>
+      </div>
+      <div>
+        <div class="score-block-label" id="game-score-label">Game</div>
+        <div id="game-score-display"></div>
+      </div>
+      <hr class="score-divider">
+      <div class="points-logged" id="pts-logged">0 points logged</div>
+      <div id="match-over-score" class="match-over-score" style="display:none;">Match Complete</div>
+    </div>
+
+    <!-- Point Form Panel -->
+    <div class="point-form-panel">
+      <div class="form-row">
+        <div class="field-label">Server</div>
+        <div class="toggle-group" id="field-server">
+          <button class="toggle" data-value="Player A" id="tog-server-a">Player A</button>
+          <button class="toggle" data-value="Player B" id="tog-server-b">Player B</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field-label">1st Serve</div>
+        <div class="toggle-group" id="field-first-serve">
+          <button class="toggle" data-value="In">In</button>
+          <button class="toggle" data-value="Out">Out</button>
+        </div>
+      </div>
+      <div class="form-row" id="row-second-serve" style="display:none;">
+        <div class="field-label">2nd Serve</div>
+        <div class="toggle-group" id="field-second-serve">
+          <button class="toggle" data-value="In">In</button>
+          <button class="toggle" data-value="Out">Out</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field-label">Winner</div>
+        <div class="toggle-group" id="field-winner">
+          <button class="toggle" data-value="Player A" id="tog-winner-a">Player A</button>
+          <button class="toggle" data-value="Player B" id="tog-winner-b">Player B</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field-label">End Type</div>
+        <div class="toggle-group" id="field-end-type">
+          <button class="toggle" data-value="Winner">Winner</button>
+          <button class="toggle" data-value="Unforced Error">Unforced Err</button>
+          <button class="toggle" data-value="Forced Error">Forced Err</button>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-log" id="btn-log">Log Point</button>
+        <button class="btn-danger" id="btn-undo">Undo Last</button>
+      </div>
+
+      <!-- Court Tracker -->
+      <div class="court-tracker" id="court-tracker">
+        <div class="court-tracker-hdr" id="court-tracker-hdr">
+          <span>Court Tracker</span>
+          <span class="court-shots-badge" id="court-shots-badge"></span>
+          <span class="court-chevron" id="court-chevron">▼</span>
+        </div>
+        <div class="court-tracker-body" id="court-tracker-body">
+          <div class="shot-legend">
+            <div class="shot-legend-item"><span class="legend-dot" style="background:#2a5298"></span>F Forehand</div>
+            <div class="shot-legend-item"><span class="legend-dot" style="background:#e87722"></span>B Backhand</div>
+            <div class="shot-legend-item"><span class="legend-dot" style="background:#2d8a4e"></span>V Volley/OH</div>
+            <div class="shot-legend-item"><span class="legend-dot" style="background:#7c3aed"></span>S Serve</div>
+          </div>
+          <div class="court-hint">Click court to place shot · Popup open: <kbd>F</kbd><kbd>B</kbd><kbd>V</kbd><kbd>S</kbd> = type · <kbd>T</kbd><kbd>C</kbd><kbd>P</kbd><kbd>N</kbd> = Topspin/sliCe/flat/none · <kbd>Esc</kbd> = cancel</div>
+          <div class="court-wrapper">
+            <svg id="court-svg" viewBox="-15 -15 250 470" width="220" height="430">
+              <rect x="0" y="0" width="220" height="440" fill="#afd8f7"/>
+              <rect x="0" y="0" width="28" height="440" fill="#92c9f0"/>
+              <rect x="192" y="0" width="28" height="440" fill="#92c9f0"/>
+              <line x1="0" y1="0" x2="220" y2="0" stroke="#fff" stroke-width="2"/>
+              <line x1="0" y1="440" x2="220" y2="440" stroke="#fff" stroke-width="2"/>
+              <line x1="0" y1="0" x2="0" y2="440" stroke="#fff" stroke-width="2"/>
+              <line x1="220" y1="0" x2="220" y2="440" stroke="#fff" stroke-width="2"/>
+              <line x1="28" y1="0" x2="28" y2="440" stroke="#fff" stroke-width="1.5"/>
+              <line x1="192" y1="0" x2="192" y2="440" stroke="#fff" stroke-width="1.5"/>
+              <line x1="28" y1="101" x2="192" y2="101" stroke="#fff" stroke-width="1.5"/>
+              <line x1="28" y1="339" x2="192" y2="339" stroke="#fff" stroke-width="1.5"/>
+              <line x1="110" y1="101" x2="110" y2="339" stroke="#fff" stroke-width="1.5"/>
+              <line x1="0" y1="220" x2="220" y2="220" stroke="#1e3a5f" stroke-width="4" opacity="0.85"/>
+              <circle cx="0" cy="220" r="4" fill="#1e3a5f" opacity="0.85"/>
+              <circle cx="220" cy="220" r="4" fill="#1e3a5f" opacity="0.85"/>
+              <text x="110" y="-4" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">Opp</text>
+              <text x="110" y="456" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">You (A)</text>
+              <g id="shot-dots-group"></g>
+            </svg>
+            <div class="shot-popup" id="shot-popup" style="display:none;">
+              <div class="popup-label">Shot type</div>
+              <div class="popup-row">
+                <button class="shot-type-btn" id="shot-type-F">F</button>
+                <button class="shot-type-btn" id="shot-type-B">B</button>
+                <button class="shot-type-btn" id="shot-type-V">V</button>
+                <button class="shot-type-btn" id="shot-type-S">S</button>
+              </div>
+              <div class="popup-label">Spin</div>
+              <div class="popup-row">
+                <button class="shot-spin-btn" id="shot-spin-topspin">Top</button>
+                <button class="shot-spin-btn" id="shot-spin-slice">Slice</button>
+                <button class="shot-spin-btn" id="shot-spin-flat">Flat</button>
+                <button class="shot-spin-btn" id="shot-spin-none">None</button>
+              </div>
+              <button class="popup-cancel" id="popup-cancel">× Cancel</button>
+            </div>
+          </div>
+          <div class="court-footer">
+            <span class="court-shot-count" id="court-shot-count">Click court to track shots</span>
+            <button class="btn-clear-shots" id="btn-clear-shots">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- History Panel -->
+    <div class="history-panel">
+      <div class="history-header">
+        <span>Point Log</span>
+        <span class="history-count" id="history-count">0 pts</span>
+      </div>
+      <div class="history-list" id="history-list">
+        <div class="history-empty">No points logged yet.</div>
+      </div>
+    </div>
+
+  </div><!-- /logger-body -->
+</div>
+
+
+<!-- ═══════════════════════════════ EDIT MODAL ═══════════════════════════════ -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="modal-title">Edit Point #0</h2>
+      <button class="modal-close" id="modal-close">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="field-label">Server</div>
+        <div class="toggle-group" id="modal-server">
+          <button class="toggle" data-value="Player A" id="modal-server-a">Player A</button>
+          <button class="toggle" data-value="Player B" id="modal-server-b">Player B</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field-label">1st Serve</div>
+        <div class="toggle-group" id="modal-first-serve">
+          <button class="toggle" data-value="In">In</button>
+          <button class="toggle" data-value="Out">Out</button>
+        </div>
+      </div>
+      <div class="form-row" id="modal-row-second-serve" style="display:none;">
+        <div class="field-label">2nd Serve</div>
+        <div class="toggle-group" id="modal-second-serve">
+          <button class="toggle" data-value="In">In</button>
+          <button class="toggle" data-value="Out">Out</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field-label">Winner</div>
+        <div class="toggle-group" id="modal-winner">
+          <button class="toggle" data-value="Player A" id="modal-winner-a">Player A</button>
+          <button class="toggle" data-value="Player B" id="modal-winner-b">Player B</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field-label">End Type</div>
+        <div class="toggle-group" id="modal-end-type">
+          <button class="toggle" data-value="Winner">Winner</button>
+          <button class="toggle" data-value="Unforced Error">Unforced Err</button>
+          <button class="toggle" data-value="Forced Error">Forced Err</button>
+        </div>
+      </div>
+      <div class="form-row" style="align-items:center;">
+        <div class="field-label">Shots</div>
+        <div id="modal-shot-info" style="font-size:12px;color:var(--muted);padding-top:2px;">No shots tracked</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-danger" id="modal-delete">Delete Point</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-secondary" id="modal-cancel">Cancel</button>
+        <button class="btn-primary" id="modal-save">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════ PAGE 3 — EXPORT ═══════════════════════════════ -->
+<div id="page-export" class="page">
+  <div style="max-width:580px;margin:0 auto;padding:32px 20px;">
+    <h1 style="margin-bottom:20px;">Export Match Data</h1>
+    <div class="card">
+      <div class="final-summary" id="final-summary"></div>
+      <h3>Review Set Scores</h3>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">
+        Auto-computed from logged points. Adjust if needed.
+      </p>
+      <div id="set-fields"></div>
+      <div class="field" style="margin-top:16px;">
+        <label>Match Result</label>
+        <div class="toggle-group" id="field-match-result">
+          <button class="toggle" data-value="W">Win (W)</button>
+          <button class="toggle" data-value="L">Loss (L)</button>
+        </div>
+      </div>
+      <div class="export-actions">
+        <button class="btn-primary" id="btn-dl-log">⬇ Download match_log.xlsx</button>
+        <button class="btn-primary" id="btn-dl-config" style="background:var(--orange);">
+          ⬇ Download match_config.xlsx
+        </button>
+        <button class="btn-primary" id="btn-upload" style="background:#2d8a4e;font-size:15px;padding:13px;">
+          ☁ Upload to SharpEye Database
+        </button>
+        <div id="upload-status" style="display:none;padding:12px;border-radius:var(--radius);
+             text-align:center;font-size:14px;font-weight:600;"></div>
+      </div>
+      <div style="margin-top:14px;text-align:center;">
+        <button class="btn-secondary" id="btn-back">← Back to Logger</button>
+      </div>
+    </div>
+
+    <!-- Shot Heatmap (shown only when shots have been tracked) -->
+    <div class="card heatmap-section" id="heatmap-card" style="display:none;">
+      <h2>Shot Heatmap</h2>
+      <div class="heatmap-controls">
+        <div class="hm-group">
+          <span class="hm-group-label">Type</span>
+          <button class="hm-btn hm-active" data-type="all" id="hm-type-all">All</button>
+          <button class="hm-btn" data-type="F" id="hm-type-F">Forehand</button>
+          <button class="hm-btn" data-type="B" id="hm-type-B">Backhand</button>
+          <button class="hm-btn" data-type="V" id="hm-type-V">Volley</button>
+          <button class="hm-btn" data-type="S" id="hm-type-S">Serve</button>
+        </div>
+        <div class="hm-group">
+          <span class="hm-group-label">Spin</span>
+          <button class="hm-btn hm-active" data-spin="all" id="hm-spin-all">All</button>
+          <button class="hm-btn" data-spin="topspin" id="hm-spin-topspin">Topspin</button>
+          <button class="hm-btn" data-spin="slice" id="hm-spin-slice">Slice</button>
+          <button class="hm-btn" data-spin="flat" id="hm-spin-flat">Flat</button>
+        </div>
+      </div>
+      <div class="heatmap-court-wrap">
+        <svg id="heatmap-court" viewBox="-15 -15 250 470" width="220" height="430">
+          <rect x="0" y="0" width="220" height="440" fill="#afd8f7"/>
+          <rect x="0" y="0" width="28" height="440" fill="#92c9f0"/>
+          <rect x="192" y="0" width="28" height="440" fill="#92c9f0"/>
+          <line x1="0" y1="0" x2="220" y2="0" stroke="#fff" stroke-width="2"/>
+          <line x1="0" y1="440" x2="220" y2="440" stroke="#fff" stroke-width="2"/>
+          <line x1="0" y1="0" x2="0" y2="440" stroke="#fff" stroke-width="2"/>
+          <line x1="220" y1="0" x2="220" y2="440" stroke="#fff" stroke-width="2"/>
+          <line x1="28" y1="0" x2="28" y2="440" stroke="#fff" stroke-width="1.5"/>
+          <line x1="192" y1="0" x2="192" y2="440" stroke="#fff" stroke-width="1.5"/>
+          <line x1="28" y1="101" x2="192" y2="101" stroke="#fff" stroke-width="1.5"/>
+          <line x1="28" y1="339" x2="192" y2="339" stroke="#fff" stroke-width="1.5"/>
+          <line x1="110" y1="101" x2="110" y2="339" stroke="#fff" stroke-width="1.5"/>
+          <line x1="0" y1="220" x2="220" y2="220" stroke="#1e3a5f" stroke-width="4" opacity="0.85"/>
+          <circle cx="0" cy="220" r="4" fill="#1e3a5f" opacity="0.85"/>
+          <circle cx="220" cy="220" r="4" fill="#1e3a5f" opacity="0.85"/>
+          <text x="110" y="-4" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">Opp</text>
+          <text x="110" y="456" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">You (A)</text>
+        </svg>
+        <canvas id="heatmap-canvas" style="display:none;"></canvas>
+      </div>
+      <div class="heatmap-no-data" id="heatmap-no-data" style="display:none;">No shots tracked yet.</div>
+      <div class="hm-shot-count" id="hm-shot-count"></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════ JAVASCRIPT ═══════════════════════════════ -->
+<script>
+// ─────────────────────────────────────────────────────────────────
+// CONFIG STATE
+// ─────────────────────────────────────────────────────────────────
+const cfg = {
+  playerName: 'Player A', opponentName: 'Player B',
+  playerUtr: null, opponentUtr: null, playerGender: 'M',
+  matchDate: '', orgName: '', adFormat: true,
+  matchTiebreak: true, firstServer: 'Player A',
+};
+
+let points = [];
+
+// ─────────────────────────────────────────────────────────────────
+// SCORING ENGINE  (operates on an explicit state object, not globals)
+// ─────────────────────────────────────────────────────────────────
+function initScore() {
+  return {
+    setsWon:        { player: 0, opponent: 0 },
+    completedSets:  [],
+    currentSet:     { player: 0, opponent: 0 },
+    currentGame:    { player: 0, opponent: 0 },
+    inTiebreak:     false,
+    inMatchTiebreak: false,
+    matchOver:      false,
+    nextServer:     'Player A',
+    tbServeCount:   0,
+  };
+}
+
+function processPointOnState(winner, s) {
+  // winner: 'player' | 'opponent'
+
+  if (s.inMatchTiebreak) {
+    s.currentGame[winner]++;
+    updateTiebreakServerOnState(s);
+    const p = s.currentGame.player, o = s.currentGame.opponent;
+    if ((p >= 10 || o >= 10) && Math.abs(p - o) >= 2) {
+      s.setsWon[winner]++;
+      s.completedSets.push({ player: p, opponent: o, tiebreak: null, isMatchTB: true });
+      s.matchOver = true;
+    }
+    return;
+  }
+
+  if (s.inTiebreak) {
+    s.currentGame[winner]++;
+    updateTiebreakServerOnState(s);
+    const p = s.currentGame.player, o = s.currentGame.opponent;
+    if ((p >= 7 || o >= 7) && Math.abs(p - o) >= 2) {
+      const sp = s.currentSet.player + (winner === 'player' ? 1 : 0);
+      const so = s.currentSet.opponent + (winner === 'opponent' ? 1 : 0);
+      s.completedSets.push({ player: sp, opponent: so, tiebreak: { player: p, opponent: o } });
+      s.setsWon[winner]++;
+      s.currentSet  = { player: 0, opponent: 0 };
+      s.currentGame = { player: 0, opponent: 0 };
+      s.inTiebreak  = false;
+      s.tbServeCount = 0;
+      if (s.setsWon.player >= 2 || s.setsWon.opponent >= 2) s.matchOver = true;
+    }
+    return;
+  }
+
+  // Regular game
+  s.currentGame[winner]++;
+  const p = s.currentGame.player, o = s.currentGame.opponent;
+
+  let gameWon = cfg.adFormat
+    ? (p >= 4 || o >= 4) && Math.abs(p - o) >= 2
+    : (p >= 4 && p > o) || (o >= 4 && o > p);
+
+  if (gameWon) {
+    const gW = p > o ? 'player' : 'opponent';
+    s.currentSet[gW]++;
+    s.currentGame = { player: 0, opponent: 0 };
+    s.nextServer  = s.nextServer === 'Player A' ? 'Player B' : 'Player A';
+
+    const sp = s.currentSet.player, so = s.currentSet.opponent;
+
+    if (sp === 6 && so === 6) {
+      if (s.completedSets.length === 2 && cfg.matchTiebreak) {
+        s.inMatchTiebreak = true;
+      } else {
+        s.inTiebreak = true;
+      }
+      s.currentGame  = { player: 0, opponent: 0 };
+      s.tbServeCount = 0;
+      return;
+    }
+
+    const setWon = (sp >= 6 || so >= 6) && Math.abs(sp - so) >= 2;
+    if (setWon) {
+      const sW = sp > so ? 'player' : 'opponent';
+      s.completedSets.push({ player: sp, opponent: so, tiebreak: null });
+      s.setsWon[sW]++;
+      s.currentSet = { player: 0, opponent: 0 };
+      if (s.setsWon.player >= 2 || s.setsWon.opponent >= 2) s.matchOver = true;
+    }
+  }
+}
+
+function updateTiebreakServerOnState(s) {
+  s.tbServeCount++;
+  if (s.tbServeCount % 2 === 1) {
+    s.nextServer = s.nextServer === 'Player A' ? 'Player B' : 'Player A';
+  }
+}
+
+// Global score — always kept in sync
+let score = initScore();
+
+function rebuildScore() {
+  score = initScore();
+  score.nextServer = cfg.firstServer;
+  for (const pt of points) {
+    processPointOnState(pt.Winner === 'Player A' ? 'player' : 'opponent', score);
+  }
+}
+
+// Returns an array of score snapshots — one BEFORE each point is processed.
+function computeScoreSnapshots() {
+  const snapshots = [];
+  const s = initScore();
+  s.nextServer = cfg.firstServer;
+  for (const pt of points) {
+    snapshots.push({
+      setsWon:        { ...s.setsWon },
+      completedSets:  s.completedSets.length,
+      currentSet:     { ...s.currentSet },
+      currentGame:    { ...s.currentGame },
+      inTiebreak:     s.inTiebreak,
+      inMatchTiebreak: s.inMatchTiebreak,
+    });
+    processPointOnState(pt.Winner === 'Player A' ? 'player' : 'opponent', s);
+  }
+  return snapshots;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SCORE DISPLAY
+// ─────────────────────────────────────────────────────────────────
+function gameLabel(n) { return ['0','15','30','40'][Math.min(n, 3)]; }
+
+function renderScore() {
+  const s = score;
+  document.getElementById('score-name-a').className =
+    'player-name-label' + (s.nextServer === 'Player A' ? ' is-serving' : '');
+  document.getElementById('score-name-b').className =
+    'player-name-label' + (s.nextServer === 'Player B' ? ' is-serving' : '');
+  document.getElementById('score-name-a').textContent = cfg.playerName;
+  document.getElementById('score-name-b').textContent = cfg.opponentName;
+
+  document.getElementById('score-sets-a').textContent = s.setsWon.player;
+  document.getElementById('score-sets-b').textContent = s.setsWon.opponent;
+
+  document.getElementById('completed-sets').innerHTML = s.completedSets.map((set, i) => {
+    const tb = set.tiebreak ? ` (${set.tiebreak.player}–${set.tiebreak.opponent})` : '';
+    return `<div class="completed-set-row">S${i+1}: ${set.player}–${set.opponent}${tb}</div>`;
+  }).join('');
+
+  document.getElementById('score-games-a').textContent = s.currentSet.player;
+  document.getElementById('score-games-b').textContent = s.currentSet.opponent;
+
+  const gLabel  = document.getElementById('game-score-label');
+  const gDisp   = document.getElementById('game-score-display');
+
+  if (s.inMatchTiebreak) {
+    gLabel.textContent = 'Match Tiebreak';
+    gDisp.innerHTML = `<div class="game-score-display">
+      <span class="a">${s.currentGame.player}</span><span class="sep">–</span>
+      <span class="b">${s.currentGame.opponent}</span></div>`;
+  } else if (s.inTiebreak) {
+    gLabel.textContent = 'Tiebreak';
+    gDisp.innerHTML = `<div class="game-score-display">
+      <span class="a">${s.currentGame.player}</span><span class="sep">–</span>
+      <span class="b">${s.currentGame.opponent}</span></div>`;
+  } else {
+    gLabel.textContent = 'Game';
+    const p = s.currentGame.player, o = s.currentGame.opponent;
+    if (p >= 3 && o >= 3) {
+      if (p === o) {
+        gDisp.innerHTML = `<div class="deuce-label">Deuce</div>`;
+      } else {
+        const adSide = p > o ? 'a' : 'b';
+        const adText = p > o ? cfg.playerName : cfg.opponentName;
+        gDisp.innerHTML = `<div class="deuce-label"><span class="${adSide}">Ad — ${adText}</span></div>`;
+      }
+    } else {
+      gDisp.innerHTML = `<div class="game-score-display">
+        <span class="a">${gameLabel(p)}</span><span class="sep">–</span>
+        <span class="b">${gameLabel(o)}</span></div>`;
+    }
+  }
+
+  document.getElementById('pts-logged').textContent =
+    `${points.length} point${points.length !== 1 ? 's' : ''} logged`;
+
+  const over = document.getElementById('match-over-score');
+  over.style.display = s.matchOver ? 'block' : 'none';
+  if (s.matchOver) {
+    over.textContent = `Match Complete  ${s.setsWon.player}–${s.setsWon.opponent}`;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// HISTORY PANEL
+// ─────────────────────────────────────────────────────────────────
+const ET_SHORT  = { 'Winner': 'W', 'Unforced Error': 'UE', 'Forced Error': 'FE' };
+const LS_SHORT  = { 'Forehand': 'FH', 'Backhand': 'BH', 'Serve': 'Srv', 'Return': 'Ret',
+                    'Volley / Overhead': 'V/OH' };
+const ET_CLASS  = { 'Winner': 'tag-w', 'Unforced Error': 'tag-ue', 'Forced Error': 'tag-fe' };
+
+function snapshotLabel(snap) {
+  if (snap.inMatchTiebreak) return `MTB ${snap.currentGame.player}–${snap.currentGame.opponent}`;
+  if (snap.inTiebreak)      return `TB ${snap.currentGame.player}–${snap.currentGame.opponent}`;
+  const p = snap.currentGame.player, o = snap.currentGame.opponent;
+  if (p >= 3 && o >= 3) return p === o ? 'Deuce' : (p > o ? 'Ad' : 'Ad Opp');
+  return `${gameLabel(p)}–${gameLabel(o)}`;
+}
+
+function renderHistory() {
+  document.getElementById('history-count').textContent = `${points.length} pts`;
+  const list = document.getElementById('history-list');
+
+  if (points.length === 0) {
+    list.innerHTML = '<div class="history-empty">No points logged yet.</div>';
+    return;
+  }
+
+  const snapshots = computeScoreSnapshots();
+
+  list.innerHTML = points.map((pt, i) => {
+    const snap    = snapshots[i];
+    const srvTag  = pt.Server === 'Player A'
+      ? `<span class="tag tag-a">A srv</span>`
+      : `<span class="tag tag-b">B srv</span>`;
+    const winTag  = pt.Winner === 'Player A'
+      ? `<span class="tag tag-a">A wins</span>`
+      : `<span class="tag tag-b">B wins</span>`;
+    const etTag   = `<span class="tag ${ET_CLASS[pt['End Type']] || ''}">${ET_SHORT[pt['End Type']] || pt['End Type']}</span>`;
+    const lsText  = LS_SHORT[pt['Last Shot']] || pt['Last Shot'];
+    const serves  = pt['Second Serve']
+      ? `Out / ${pt['Second Serve']}`
+      : pt['First Serve'];
+    const setStr  = `S${snap.completedSets + 1}: ${snap.currentSet.player}–${snap.currentSet.opponent}`;
+    const gameStr = snapshotLabel(snap);
+
+    return `<div class="history-item" data-index="${i}">
+      <div class="hi-top">
+        <span class="hi-num">#${i+1}</span>
+        <span class="hi-score">${setStr} · ${gameStr}</span>
+        ${srvTag}${winTag}
+      </div>
+      <div class="hi-bottom">${serves} · ${etTag} ${lsText}</div>
+    </div>`;
+  }).join('');
+
+  // Scroll to bottom (latest point)
+  list.scrollTop = list.scrollHeight;
+
+  // Attach click handlers
+  list.querySelectorAll('.history-item').forEach(el => {
+    el.addEventListener('click', () => openEditModal(parseInt(el.dataset.index)));
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// EDIT MODAL
+// ─────────────────────────────────────────────────────────────────
+let editIndex = null;
+
+function openEditModal(idx) {
+  editIndex = idx;
+  const pt = points[idx];
+  document.getElementById('modal-title').textContent = `Edit Point #${idx + 1}`;
+
+  setToggleVal('modal-server', pt.Server, true);
+  setToggleVal('modal-first-serve', pt['First Serve'], false);
+
+  if (pt['Second Serve']) {
+    document.getElementById('modal-row-second-serve').style.display = 'flex';
+    setToggleVal('modal-second-serve', pt['Second Serve'], false);
+  } else {
+    document.getElementById('modal-row-second-serve').style.display = 'none';
+    clearToggleGroup('modal-second-serve');
+  }
+
+  setToggleVal('modal-winner', pt.Winner, true);
+  setToggleVal('modal-end-type', pt['End Type'], false);
+
+  // Update player name buttons
+  document.getElementById('modal-server-a').textContent = cfg.playerName;
+  document.getElementById('modal-server-b').textContent = cfg.opponentName;
+  document.getElementById('modal-winner-a').textContent = cfg.playerName;
+  document.getElementById('modal-winner-b').textContent = cfg.opponentName;
+
+  // Shot info (read-only)
+  const shots = pt.shots || [];
+  const n = shots.length;
+  document.getElementById('modal-shot-info').textContent =
+    n > 0 ? `${n} shot${n !== 1 ? 's' : ''} tracked on court` : 'No shots tracked';
+
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.remove('open');
+  editIndex = null;
+}
+
+function saveEdit() {
+  const server   = getToggleVal('modal-server');
+  const firstSrv = getToggleVal('modal-first-serve');
+  const secondSrv = firstSrv === 'Out' ? getToggleVal('modal-second-serve') : null;
+  const winner   = getToggleVal('modal-winner');
+  const endType  = getToggleVal('modal-end-type');
+
+  const missing = [];
+  if (!server)    missing.push('Server');
+  if (!firstSrv)  missing.push('1st Serve');
+  if (firstSrv === 'Out' && !secondSrv) missing.push('2nd Serve');
+  if (!winner)    missing.push('Winner');
+  if (!endType)   missing.push('End Type');
+
+  if (missing.length) { alert(`Please fill in: ${missing.join(', ')}`); return; }
+
+  const shots = points[editIndex].shots || [];
+  const lastShot = shots.length > 0 ? { F: 'Forehand', B: 'Backhand', V: 'Volley / Overhead', S: 'Serve' }[shots[shots.length - 1].type] : points[editIndex]['Last Shot'];
+
+  points[editIndex] = {
+    ...points[editIndex],
+    Server:           server,
+    'First Serve':    firstSrv,
+    'Second Serve':   secondSrv,
+    Winner:           winner,
+    'Number of Shots': shots.length || points[editIndex]['Number of Shots'],
+    'End Type':       endType,
+    'Last Shot':      lastShot,
+    'Net Approach':   inferNetApproach(shots, server),
+  };
+
+  rebuildScore();
+  renderScore();
+  renderHistory();
+  closeEditModal();
+}
+
+function deletePoint() {
+  if (!confirm(`Delete point #${editIndex + 1}? This cannot be undone.`)) return;
+  points.splice(editIndex, 1);
+  rebuildScore();
+  renderScore();
+  renderHistory();
+  closeEditModal();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// TOGGLE HELPERS
+// ─────────────────────────────────────────────────────────────────
+function getToggleVal(groupId) {
+  const el = document.getElementById(groupId).querySelector('.toggle.active, .toggle.active-b');
+  return el ? el.dataset.value : null;
+}
+
+function setToggleVal(groupId, value, usePlayerColors) {
+  clearToggleGroup(groupId);
+  const group = document.getElementById(groupId);
+  const btn = Array.from(group.querySelectorAll('.toggle')).find(b => b.dataset.value === value);
+  if (btn) {
+    btn.classList.add(usePlayerColors && value === 'Player B' ? 'active-b' : 'active');
+  }
+}
+
+function clearToggleGroup(groupId) {
+  document.getElementById(groupId).querySelectorAll('.toggle')
+    .forEach(b => b.classList.remove('active','active-b'));
+}
+
+function initToggleGroup(groupId, usePlayerColors, onChangeCb) {
+  const group = document.getElementById(groupId);
+  group.querySelectorAll('.toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      group.querySelectorAll('.toggle').forEach(b => b.classList.remove('active','active-b'));
+      btn.classList.add(usePlayerColors && btn.dataset.value === 'Player B' ? 'active-b' : 'active');
+      if (onChangeCb) onChangeCb(btn.dataset.value);
+    });
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// POINT FORM LOGIC
+// ─────────────────────────────────────────────────────────────────
+
+function resetForm() {
+  setToggleVal('field-server', score.nextServer, true);
+  clearToggleGroup('field-first-serve');
+  document.getElementById('row-second-serve').style.display = 'none';
+  clearToggleGroup('field-second-serve');
+  clearToggleGroup('field-winner');
+  clearToggleGroup('field-end-type');
+  currentPointShots = [];
+  renderShotDots();
+  updateCourtBadge();
+}
+
+function logPoint() {
+  const server   = getToggleVal('field-server');
+  const firstSrv = getToggleVal('field-first-serve');
+  const secondSrv = firstSrv === 'Out' ? getToggleVal('field-second-serve') : null;
+  const winner   = getToggleVal('field-winner');
+  const endType  = getToggleVal('field-end-type');
+
+  const missing = [];
+  if (!server)    missing.push('Server');
+  if (!firstSrv)  missing.push('1st Serve');
+  if (firstSrv === 'Out' && !secondSrv) missing.push('2nd Serve');
+  if (!winner)    missing.push('Winner');
+  if (!endType)   missing.push('End Type');
+  if (missing.length) { alert(`Please fill in: ${missing.join(', ')}`); return; }
+
+  const shots   = [...currentPointShots];
+  const lastShot = shots.length > 0 ? { F: 'Forehand', B: 'Backhand', V: 'Volley / Overhead', S: 'Serve' }[shots[shots.length - 1].type] : null;
+  const netApp   = inferNetApproach(shots, server);
+
+  points.push({
+    Timestamp:        new Date().toISOString(),
+    Server:           server,
+    'First Serve':    firstSrv,
+    'Second Serve':   secondSrv,
+    Winner:           winner,
+    'Number of Shots': shots.length || null,
+    'End Type':       endType,
+    'Last Shot':      lastShot,
+    'Net Approach':   netApp,
+    shots,
+  });
+
+  processPointOnState(winner === 'Player A' ? 'player' : 'opponent', score);
+  renderScore();
+  renderHistory();
+  resetForm();
+}
+
+function undoLast() {
+  if (points.length === 0) return;
+  points.pop();
+  rebuildScore();
+  renderScore();
+  renderHistory();
+  resetForm();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// EXPORT
+// ─────────────────────────────────────────────────────────────────
+function showExportPage() {
+  showPage('page-export');
+  const s = score;
+  document.getElementById('final-summary').textContent =
+    `${cfg.playerName} ${s.setsWon.player} – ${s.setsWon.opponent} ${cfg.opponentName}  ·  ${points.length} points`;
+
+  const suggested = s.setsWon.player >= s.setsWon.opponent ? 'W' : 'L';
+  setToggleVal('field-match-result', suggested, false);
+  buildSetFields();
+
+  // Show heatmap only if any shots were tracked
+  const hasShots = points.some(pt => pt.shots && pt.shots.length > 0);
+  document.getElementById('heatmap-card').style.display = hasShots ? 'block' : 'none';
+  if (hasShots) renderHeatmap();
+}
+
+function buildSetFields() {
+  const sets = score.completedSets;
+  let html = '';
+  for (let i = 0; i < 3; i++) {
+    const set = sets[i];
+    const label = i < 2 ? `Set ${i+1}` : `Set ${i+1} <span style="font-weight:400;">(if played)</span>`;
+    const pVal  = set ? set.player   : '';
+    const oVal  = set ? set.opponent : '';
+    const tbPV  = set && set.tiebreak ? set.tiebreak.player   : '';
+    const tbOV  = set && set.tiebreak ? set.tiebreak.opponent : '';
+    html += `<div style="margin-bottom:12px;">
+      <label style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;display:block;">${label}</label>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input type="number" id="set${i+1}-p" value="${pVal}" min="0" style="width:70px;" placeholder="${cfg.playerName}">
+        <span style="color:var(--muted)">–</span>
+        <input type="number" id="set${i+1}-o" value="${oVal}" min="0" style="width:70px;" placeholder="${cfg.opponentName}">
+        ${set && set.tiebreak ? `
+          <span style="font-size:12px;color:var(--muted);margin-left:8px;">TB:</span>
+          <input type="number" id="set${i+1}-tbp" value="${tbPV}" min="0" style="width:60px;">
+          <span style="color:var(--muted)">–</span>
+          <input type="number" id="set${i+1}-tbo" value="${tbOV}" min="0" style="width:60px;">
+        ` : ''}
+      </div>
+    </div>`;
+  }
+  document.getElementById('set-fields').innerHTML = html;
+}
+
+function getSetVal(id) {
+  const el = document.getElementById(id);
+  return el && el.value !== '' ? Number(el.value) : null;
+}
+
+function downloadMatchLog() {
+  if (points.length === 0) { alert('No points logged.'); return; }
+  const headers = ['Timestamp','Server','First Serve','Second Serve','Winner',
+                   'Number of Shots','End Type','Last Shot','Net Approach','Shots (JSON)'];
+  const rows = points.map(pt => [
+    pt.Timestamp, pt.Server, pt['First Serve'],
+    pt['Second Serve'] !== null ? pt['Second Serve'] : '',
+    pt.Winner, pt['Number of Shots'] ?? '', pt['End Type'], pt['Last Shot'] ?? '', pt['Net Approach'] ?? '',
+    pt.shots && pt.shots.length ? JSON.stringify(pt.shots) : '',
+  ]);
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'match_log');
+  XLSX.writeFile(wb, 'match_log.xlsx');
+}
+
+function downloadMatchConfig() {
+  const result = getToggleVal('field-match-result');
+  if (!result) { alert('Please select Match Result.'); return; }
+  const dateVal = cfg.matchDate ? new Date(cfg.matchDate + 'T12:00:00') : '';
+  const rows = [
+    ['var', 'input'],
+    ['player_name',             cfg.playerName],
+    ['player_utr',              cfg.playerUtr],
+    ['player_gender',           cfg.playerGender],
+    ['opponent_name',           cfg.opponentName],
+    ['opponent_utr',            cfg.opponentUtr],
+    ['match_date',              dateVal],
+    ['set1_player',             getSetVal('set1-p')],
+    ['set1_opponent',           getSetVal('set1-o')],
+    ['set1_tiebreak_player',    getSetVal('set1-tbp')],
+    ['set1_tiebreak_opponent',  getSetVal('set1-tbo')],
+    ['set2_player',             getSetVal('set2-p')],
+    ['set2_opponent',           getSetVal('set2-o')],
+    ['set2_tiebreak_player',    getSetVal('set2-tbp')],
+    ['set2_tiebreak_opponent',  getSetVal('set2-tbo')],
+    ['set3_player',             getSetVal('set3-p')],
+    ['set3_opponent',           getSetVal('set3-o')],
+    ['set3_tiebreak_player',    null],
+    ['set3_tiebreak_opponent',  null],
+    ['ad_format',               cfg.adFormat ? '=TRUE()' : '=FALSE()'],
+    ['match_result',            result],
+    ['org_name',                cfg.orgName],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  if (dateVal instanceof Date) {
+    const cell = ws['B7'];
+    if (cell) { cell.t = 'd'; cell.z = 'yyyy-mm-dd'; }
+  }
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'match_config');
+  XLSX.writeFile(wb, 'match_config.xlsx');
+}
+
+// ─────────────────────────────────────────────────────────────────
+// PAGE NAV
+// ─────────────────────────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function updatePlayerLabels() {
+  document.getElementById('logger-title').textContent =
+    `${cfg.playerName} vs ${cfg.opponentName}`;
+  const pairs = [
+    ['tog-server-a',  cfg.playerName],  ['tog-server-b',  cfg.opponentName],
+    ['tog-winner-a',  cfg.playerName],  ['tog-winner-b',  cfg.opponentName],
+    ['first-srv-a',   cfg.playerName],  ['first-srv-b',   cfg.opponentName],
+    ['score-name-a',  cfg.playerName],  ['score-name-b',  cfg.opponentName],
+  ];
+  pairs.forEach(([id, name]) => { const el = document.getElementById(id); if(el) el.textContent = name; });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// WIRE UP EVENTS
+// ─────────────────────────────────────────────────────────────────
+
+// Setup toggle groups
+initToggleGroup('cfg-first-server', false);
+initToggleGroup('field-match-result', false);
+
+// Point form toggles
+initToggleGroup('field-server', true);
+initToggleGroup('field-winner', true);
+initToggleGroup('field-end-type', false);
+initToggleGroup('field-first-serve', false, val => {
+  document.getElementById('row-second-serve').style.display = val === 'Out' ? 'flex' : 'none';
+  if (val === 'In') clearToggleGroup('field-second-serve');
+});
+initToggleGroup('field-second-serve', false, val => {
+  if (val === 'Out') {
+    // Double fault auto-fill
+    const srv = getToggleVal('field-server');
+    setToggleVal('field-winner', srv === 'Player A' ? 'Player B' : 'Player A', true);
+    setToggleVal('field-end-type', 'Unforced Error', false);
+    // Add a serve shot at center court if no shots yet
+    if (currentPointShots.length === 0) {
+      currentPointShots.push({ nx: 0.5, ny: 1.0, type: 'S', spin: 'flat', seq: 1 });
+      renderShotDots(); updateCourtBadge();
+    }
+  }
+});
+
+// Modal toggles
+initToggleGroup('modal-server', true);
+initToggleGroup('modal-winner', true);
+initToggleGroup('modal-end-type', false);
+initToggleGroup('modal-first-serve', false, val => {
+  document.getElementById('modal-row-second-serve').style.display = val === 'Out' ? 'flex' : 'none';
+  if (val === 'In') clearToggleGroup('modal-second-serve');
+});
+initToggleGroup('modal-second-serve', false);
+
+// Logger buttons
+document.getElementById('btn-log').addEventListener('click', logPoint);
+document.getElementById('btn-undo').addEventListener('click', undoLast);
+document.getElementById('btn-end').addEventListener('click', showExportPage);
+
+// Modal buttons
+document.getElementById('modal-close').addEventListener('click', closeEditModal);
+document.getElementById('modal-cancel').addEventListener('click', closeEditModal);
+document.getElementById('modal-save').addEventListener('click', saveEdit);
+document.getElementById('modal-delete').addEventListener('click', deletePoint);
+document.getElementById('edit-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('edit-modal')) closeEditModal();
+});
+
+// Export buttons
+document.getElementById('btn-dl-log').addEventListener('click', downloadMatchLog);
+document.getElementById('btn-dl-config').addEventListener('click', downloadMatchConfig);
+document.getElementById('btn-back').addEventListener('click', () => showPage('page-logger'));
+
+// Setup start
+document.getElementById('btn-start').addEventListener('click', () => {
+  const pName  = document.getElementById('cfg-player-name').value.trim();
+  const oName  = document.getElementById('cfg-opponent-name').value.trim();
+  const pUtr   = parseFloat(document.getElementById('cfg-player-utr').value);
+  const oUtr   = parseFloat(document.getElementById('cfg-opponent-utr').value);
+  const date   = document.getElementById('cfg-match-date').value;
+  const org    = document.getElementById('cfg-org-name').value.trim();
+
+  const errEl = document.getElementById('setup-error');
+  if (!pName || !oName || isNaN(pUtr) || isNaN(oUtr) || !date || !org) {
+    errEl.style.display = 'block'; return;
+  }
+  errEl.style.display = 'none';
+
+  cfg.playerName    = pName;
+  cfg.opponentName  = oName;
+  cfg.playerUtr     = pUtr;
+  cfg.opponentUtr   = oUtr;
+  cfg.playerGender  = document.getElementById('cfg-player-gender').value;
+  cfg.matchDate     = date;
+  cfg.orgName       = org;
+  cfg.adFormat      = document.getElementById('cfg-ad-format').value === 'TRUE';
+  cfg.matchTiebreak = document.getElementById('cfg-third-set').value === 'tiebreak';
+  cfg.firstServer   = getToggleVal('cfg-first-server') || 'Player A';
+
+  points = [];
+  score  = initScore();
+  score.nextServer = cfg.firstServer;
+
+  updatePlayerLabels();
+  renderScore();
+  renderHistory();
+  resetForm();
+  showPage('page-logger');
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  // Court tracker shortcuts (intercept when shot popup is open)
+  const popup = document.getElementById('shot-popup');
+  if (popup && popup.style.display === 'block') {
+    const k = e.key.toUpperCase();
+    if (['F','B','V','S'].includes(k)) { e.preventDefault(); selectShotType(k); return; }
+    if (k === 'T') { e.preventDefault(); selectShotSpin('topspin'); return; }
+    if (k === 'C') { e.preventDefault(); selectShotSpin('slice'); return; }
+    if (k === 'P') { e.preventDefault(); selectShotSpin('flat'); return; }
+    if (k === 'N') { e.preventDefault(); selectShotSpin('none'); return; }
+    if (e.key === 'Escape') { cancelShot(); return; }
+  }
+  if (e.key === 'Enter' && !document.getElementById('edit-modal').classList.contains('open')
+      && document.getElementById('page-logger').classList.contains('active')) {
+    e.preventDefault();
+    logPoint();
+  }
+  if (e.key === 'Escape') closeEditModal();
+});
+
+// ─────────────────────────────────────────────────────────────────
+// MOBILE TABS
+// ─────────────────────────────────────────────────────────────────
+function activateMobilePanel(panelClass) {
+  ['score-panel', 'point-form-panel', 'history-panel'].forEach(cls => {
+    document.querySelector('.' + cls).classList.remove('mob-active');
+  });
+  document.querySelector('.' + panelClass).classList.add('mob-active');
+}
+
+(function initMobileTabs() {
+  activateMobilePanel('point-form-panel'); // default tab
+  document.querySelectorAll('.mobile-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.mobile-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      activateMobilePanel(tab.dataset.panel);
+      if (tab.dataset.panel === 'history-panel') renderHistory();
+    });
+  });
+})();
+
+// ─────────────────────────────────────────────────────────────────
+// SUPABASE UPLOAD
+// ─────────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://omgjcxrgczshbxtlxfne.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9tZ2pjeHJnY3pzaGJ4dGx4Zm5lIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzA2NDk1NiwiZXhwIjoyMDgyNjQwOTU2fQ.P21JVykekoKuo-9Bw5os0Mh_Oi991rDrw72bbgXLScM';
+
+function setUploadStatus(msg, ok) {
+  const el = document.getElementById('upload-status');
+  el.style.display = 'block';
+  el.style.background = ok ? '#d4edda' : '#fde8d5';
+  el.style.color = ok ? '#2d8a4e' : '#c0392b';
+  el.textContent = msg;
+}
+
+async function uploadToSupabase() {
+  const result = getToggleVal('field-match-result');
+  if (!result) { alert('Please select Match Result before uploading.'); return; }
+  if (points.length === 0) { alert('No points logged.'); return; }
+
+  const btn = document.getElementById('btn-upload');
+  btn.disabled = true;
+  btn.textContent = 'Uploading…';
+  document.getElementById('upload-status').style.display = 'none';
+
+  const body = {
+    player_name:      cfg.playerName,
+    player_utr:       cfg.playerUtr,
+    player_gender:    cfg.playerGender,
+    opponent_name:    cfg.opponentName,
+    opponent_utr:     cfg.opponentUtr,
+    match_date:       cfg.matchDate || null,
+    org_name:         cfg.orgName || null,
+    ad_format:        cfg.adFormat,
+    match_result:     result,
+    set1_player:      getSetVal('set1-p'),
+    set1_opponent:    getSetVal('set1-o'),
+    set1_tb_player:   getSetVal('set1-tbp'),
+    set1_tb_opponent: getSetVal('set1-tbo'),
+    set2_player:      getSetVal('set2-p'),
+    set2_opponent:    getSetVal('set2-o'),
+    set2_tb_player:   getSetVal('set2-tbp'),
+    set2_tb_opponent: getSetVal('set2-tbo'),
+    set3_player:      getSetVal('set3-p'),
+    set3_opponent:    getSetVal('set3-o'),
+    total_points:     points.length,
+    points:           points,
+  };
+
+  try {
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/match_submissions`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (resp.ok) {
+      setUploadStatus('Match uploaded successfully!', true);
+      btn.textContent = '✓ Uploaded';
+    } else {
+      const errText = await resp.text();
+      setUploadStatus('Upload failed — please download the xlsx files as backup.', false);
+      console.error('Supabase error:', errText);
+      btn.disabled = false;
+      btn.textContent = '☁ Upload to SharpEye Database';
+    }
+  } catch (e) {
+    setUploadStatus('Network error — please download the xlsx files as backup.', false);
+    console.error(e);
+    btn.disabled = false;
+    btn.textContent = '☁ Upload to SharpEye Database';
+  }
+}
+
+document.getElementById('btn-upload').addEventListener('click', uploadToSupabase);
+
+// ─────────────────────────────────────────────────────────────────
+// COURT TRACKER
+// ─────────────────────────────────────────────────────────────────
+const SHOT_COLORS  = { F: '#2a5298', B: '#e87722', V: '#2d8a4e', S: '#7c3aed' };
+const SHOT_TYPE_LABEL = { F: 'Forehand', B: 'Backhand', V: 'Volley / Overhead', S: 'Serve' };
+const DEFAULT_SPIN = { F: 'topspin', B: 'topspin', V: 'none', S: 'flat' };
+const COURT_W = 220, COURT_H = 440;
+
+let currentPointShots = [];
+let pendingNx = null, pendingNy = null;
+let pendingType = null, pendingSpin = null;
+let courtOpen = false;
+
+function toggleCourt() {
+  courtOpen = !courtOpen;
+  document.getElementById('court-tracker-body').classList.toggle('open', courtOpen);
+  document.getElementById('court-chevron').classList.toggle('open', courtOpen);
+}
+
+function svgPoint(e) {
+  const svg = document.getElementById('court-svg');
+  const rect = svg.getBoundingClientRect();
+  const vb = svg.viewBox.baseVal;
+  return {
+    sx: (e.clientX - rect.left) * (vb.width  / rect.width)  + vb.x,
+    sy: (e.clientY - rect.top)  * (vb.height / rect.height) + vb.y,
+  };
+}
+
+function svgFromNorm(nx, ny) { return { sx: nx * COURT_W, sy: ny * COURT_H }; }
+
+function handleCourtClick(e) {
+  e.stopPropagation();
+  const { sx, sy } = svgPoint(e);
+  pendingNx = sx / COURT_W;
+  pendingNy = sy / COURT_H;
+  pendingType = null;
+  pendingSpin = null;
+  ['F','B','V','S'].forEach(t => document.getElementById('shot-type-' + t).className = 'shot-type-btn');
+  ['topspin','slice','flat','none'].forEach(s => document.getElementById('shot-spin-' + s).className = 'shot-spin-btn');
+  const popup   = document.getElementById('shot-popup');
+  const wrapper = document.querySelector('.court-wrapper');
+  const wRect   = wrapper.getBoundingClientRect();
+  let left = e.clientX - wRect.left + 8;
+  let top  = e.clientY - wRect.top  - 55;
+  if (left + 168 > wRect.width)  left = e.clientX - wRect.left - 176;
+  if (top < 0)                   top  = e.clientY - wRect.top  + 10;
+  popup.style.left = Math.max(0, left) + 'px';
+  popup.style.top  = Math.max(0, top)  + 'px';
+  popup.style.display = 'block';
+  renderShotDots();
+}
+
+function cancelShot() {
+  pendingNx = null; pendingNy = null;
+  pendingType = null; pendingSpin = null;
+  document.getElementById('shot-popup').style.display = 'none';
+  renderShotDots();
+}
+
+function selectShotType(type) {
+  pendingType = type;
+  ['F','B','V','S'].forEach(t =>
+    document.getElementById('shot-type-' + t).className = 'shot-type-btn' + (t === type ? ' sel-' + t : '')
+  );
+  if (pendingSpin !== null) confirmShot();
+}
+
+function selectShotSpin(spin) {
+  pendingSpin = spin;
+  ['topspin','slice','flat','none'].forEach(s =>
+    document.getElementById('shot-spin-' + s).className = 'shot-spin-btn' + (s === spin ? ' sel' : '')
+  );
+  if (pendingType !== null) confirmShot();
+}
+
+function confirmShot() {
+  if (pendingNx === null || !pendingType) return;
+  const spin = pendingSpin !== null ? pendingSpin : DEFAULT_SPIN[pendingType];
+  currentPointShots.push({ nx: pendingNx, ny: pendingNy, type: pendingType, spin, seq: currentPointShots.length + 1 });
+  pendingNx = null; pendingNy = null;
+  pendingType = null; pendingSpin = null;
+  document.getElementById('shot-popup').style.display = 'none';
+  renderShotDots();
+  updateCourtBadge();
+}
+
+function clearShots() {
+  currentPointShots = [];
+  cancelShot();
+  updateCourtBadge();
+}
+
+function updateCourtBadge() {
+  const n = currentPointShots.length;
+  document.getElementById('court-shots-badge').textContent = n > 0 ? n + ' shot' + (n !== 1 ? 's' : '') : '';
+  document.getElementById('court-shot-count').textContent  = n > 0 ? n + ' shot' + (n !== 1 ? 's' : '') + ' logged' : 'Click court to track shots';
+}
+
+function renderShotDots() {
+  const g = document.getElementById('shot-dots-group');
+  if (!g) return;
+  let html = '';
+  currentPointShots.forEach(s => {
+    const { sx, sy } = svgFromNorm(s.nx, s.ny);
+    const c = SHOT_COLORS[s.type] || '#888';
+    html += `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="8" fill="${c}" opacity="0.88" stroke="white" stroke-width="1.5"/>` +
+            `<text x="${sx.toFixed(1)}" y="${(sy + 3.5).toFixed(1)}" text-anchor="middle" font-size="8.5" font-weight="bold" fill="white" font-family="sans-serif" pointer-events="none">${s.type}</text>`;
+  });
+  if (pendingNx !== null) {
+    const { sx, sy } = svgFromNorm(pendingNx, pendingNy);
+    html += `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="8" fill="#888" opacity="0.35" stroke="white" stroke-width="1.5"/>`;
+  }
+  g.innerHTML = html;
+}
+
+function inferNetApproach(shots, server) {
+  if (!shots || shots.length === 0) return 'None';
+  const lastTwo = shots.slice(-2);
+  const volleyShot = [...lastTwo].reverse().find(s => s.type === 'V');
+  if (!volleyShot) return 'None';
+  const returner = server === 'Player A' ? 'Player B' : 'Player A';
+  return volleyShot.seq % 2 === 1 ? server : returner;
+}
+
+(function initCourt() {
+  document.getElementById('court-tracker-hdr').addEventListener('click', toggleCourt);
+  document.getElementById('court-svg').addEventListener('click', handleCourtClick);
+  document.getElementById('popup-cancel').addEventListener('click', e => { e.stopPropagation(); cancelShot(); });
+  document.getElementById('btn-clear-shots').addEventListener('click', clearShots);
+  ['F','B','V','S'].forEach(t =>
+    document.getElementById('shot-type-' + t).addEventListener('click', e => { e.stopPropagation(); selectShotType(t); })
+  );
+  ['topspin','slice','flat','none'].forEach(s =>
+    document.getElementById('shot-spin-' + s).addEventListener('click', e => { e.stopPropagation(); selectShotSpin(s); })
+  );
+  document.addEventListener('click', e => {
+    const popup = document.getElementById('shot-popup');
+    if (popup.style.display === 'block' && !popup.contains(e.target) && !e.target.closest('#court-svg')) {
+      cancelShot();
+    }
+  });
+})();
+
+// ─────────────────────────────────────────────────────────────────
+// HEATMAP
+// ─────────────────────────────────────────────────────────────────
+let hmType = 'all', hmSpin = 'all';
+
+(function initHeatmapControls() {
+  ['all','F','B','V','S'].forEach(t => {
+    document.getElementById('hm-type-' + t).addEventListener('click', () => {
+      hmType = t;
+      document.querySelectorAll('.hm-btn[data-type]').forEach(b => b.classList.remove('hm-active'));
+      document.getElementById('hm-type-' + t).classList.add('hm-active');
+      renderHeatmap();
+    });
+  });
+  ['all','topspin','slice','flat'].forEach(s => {
+    document.getElementById('hm-spin-' + s).addEventListener('click', () => {
+      hmSpin = s;
+      document.querySelectorAll('.hm-btn[data-spin]').forEach(b => b.classList.remove('hm-active'));
+      document.getElementById('hm-spin-' + s).classList.add('hm-active');
+      renderHeatmap();
+    });
+  });
+})();
+
+function renderHeatmap() {
+  const canvas  = document.getElementById('heatmap-canvas');
+  const noData  = document.getElementById('heatmap-no-data');
+  const countEl = document.getElementById('hm-shot-count');
+  if (!canvas) return;
+
+  const shots = [];
+  for (const pt of points) {
+    if (!pt.shots) continue;
+    for (const s of pt.shots) {
+      if (hmType !== 'all' && s.type !== hmType) continue;
+      if (hmSpin !== 'all' && s.spin !== hmSpin) continue;
+      shots.push(s);
+    }
+  }
+
+  if (shots.length === 0) {
+    canvas.style.display = 'none';
+    noData.style.display = 'block';
+    countEl.textContent  = '';
+    return;
+  }
+  noData.style.display = 'none';
+
+  const svgEl = document.getElementById('heatmap-court');
+  const W = svgEl.clientWidth  || 220;
+  const H = svgEl.clientHeight || 430;
+  canvas.width  = W;
+  canvas.height = H;
+  canvas.style.display = 'block';
+
+  // viewBox is "-15 -15 250 470" → court 0,0-220,440 maps into canvas
+  const scaleX = W / 250, scaleY = H / 470;
+  const offX   = 15 * scaleX, offY = 15 * scaleY;
+  const cW     = COURT_W * scaleX, cH = COURT_H * scaleY;
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  const rad = Math.max(14, Math.min(24, W / 10));
+  for (const s of shots) {
+    const cx  = offX + s.nx * cW;
+    const cy  = offY + s.ny * cH;
+    const hex = SHOT_COLORS[s.type] || '#888';
+    const r   = parseInt(hex.slice(1, 3), 16);
+    const g   = parseInt(hex.slice(3, 5), 16);
+    const b   = parseInt(hex.slice(5, 7), 16);
+    const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
+    grd.addColorStop(0, `rgba(${r},${g},${b},0.7)`);
+    grd.addColorStop(1, `rgba(${r},${g},${b},0)`);
+    ctx.beginPath();
+    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+    ctx.fillStyle = grd;
+    ctx.fill();
+  }
+
+  countEl.textContent = `${shots.length} shot${shots.length !== 1 ? 's' : ''} shown`;
+}
+</script>
+</body>
+</html>
