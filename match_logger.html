@@ -360,10 +360,17 @@
 
   <div class="logger-bar">
     <h1 id="logger-title">Player A vs Player B</h1>
-    <button class="btn-secondary" id="btn-end"
-            style="border-color:rgba(255,255,255,0.5);color:#fff;font-size:12px;padding:6px 14px;">
-      End Match &amp; Export
-    </button>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button id="btn-flip-court"
+              style="border:1.5px solid rgba(255,255,255,0.4);color:rgba(255,255,255,0.85);background:rgba(255,255,255,0.08);border-radius:var(--radius);font-size:12px;padding:6px 14px;cursor:pointer;font-weight:600;"
+              title="Flip court — swap Player A / Player B ends">
+        ⇅ Flip Court
+      </button>
+      <button class="btn-secondary" id="btn-end"
+              style="border-color:rgba(255,255,255,0.5);color:#fff;font-size:12px;padding:6px 14px;">
+        End Match &amp; Export
+      </button>
+    </div>
   </div>
 
   <!-- Mobile tab bar (hidden on desktop via CSS) -->
@@ -454,7 +461,6 @@
         <div class="court-tracker-hdr" id="court-tracker-hdr">
           <span>Court Tracker</span>
           <span class="court-shots-badge" id="court-shots-badge"></span>
-          <button id="btn-flip-court" title="Flip court — swap which end is Player A / Player B" style="font-size:11px;padding:2px 8px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;margin-right:4px;">⇅ Flip</button>
           <span class="court-chevron" id="court-chevron">▼</span>
         </div>
         <div class="court-tracker-body" id="court-tracker-body">
@@ -1328,6 +1334,11 @@ initToggleGroup('modal-second-serve', false);
 document.getElementById('btn-log').addEventListener('click', logPoint);
 document.getElementById('btn-undo').addEventListener('click', undoLast);
 document.getElementById('btn-end').addEventListener('click', showExportPage);
+document.getElementById('btn-flip-court').addEventListener('click', () => {
+  courtFlipped = !courtFlipped;
+  updateCourtLabels();
+  renderShotDots();
+});
 
 // Modal buttons
 document.getElementById('modal-close').addEventListener('click', closeEditModal);
@@ -1774,12 +1785,6 @@ function inferNetApproach(shots, server) {
 
 (function initCourt() {
   document.getElementById('court-tracker-hdr').addEventListener('click', toggleCourt);
-  document.getElementById('btn-flip-court').addEventListener('click', e => {
-    e.stopPropagation(); // don't toggle the court open/closed
-    courtFlipped = !courtFlipped;
-    updateCourtLabels();
-    renderShotDots();
-  });
   document.getElementById('court-svg').addEventListener('click', handleCourtClick);
   document.getElementById('popup-cancel').addEventListener('click', e => { e.stopPropagation(); cancelShot(); });
   document.getElementById('btn-zones').addEventListener('click', e => { e.stopPropagation(); toggleZoneGrid(); });
