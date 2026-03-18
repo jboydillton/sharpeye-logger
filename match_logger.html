@@ -470,7 +470,7 @@
             <div class="shot-legend-item"><span class="legend-dot" style="background:#2d8a4e"></span>V Volley/OH</div>
             <div class="shot-legend-item"><span class="legend-dot" style="background:#7c3aed"></span>S Serve</div>
           </div>
-          <div class="court-hint">Keyboard: <kbd>F</kbd><kbd>B</kbd><kbd>V</kbd> then numpad 1–9 · <kbd>S</kbd> then <kbd>W</kbd><kbd>B</kbd><kbd>T</kbd> (Wide/Body/T) · <kbd>0</kbd> = net · <kbd>Esc</kbd> = cancel · Or click court → popup</div>
+          <div class="court-hint">Keyboard: <kbd>F</kbd><kbd>B</kbd><kbd>V</kbd> → numpad 1–9 (zones auto-flip each shot) · <kbd>S</kbd> → <kbd>D</kbd>/<kbd>A</kbd> (Deuce/Ad) → <kbd>W</kbd><kbd>B</kbd><kbd>T</kbd> · <kbd>0</kbd> = net · <kbd>Esc</kbd> = cancel</div>
           <div class="court-wrapper">
             <svg id="court-svg" viewBox="-15 -15 250 470" width="220" height="430">
               <rect x="0" y="0" width="220" height="440" fill="#afd8f7"/>
@@ -490,23 +490,8 @@
               <circle cx="220" cy="220" r="4" fill="#1e3a5f" opacity="0.85"/>
               <text id="court-label-top" x="110" y="-4" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">Player B</text>
               <text id="court-label-bottom" x="110" y="456" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">Player A</text>
-              <!-- Numpad zone grid (toggled via Zones button) -->
-              <g id="numpad-grid" style="display:none;">
-                <line x1="0" y1="99"  x2="220" y2="99"  stroke="#1e3a5f" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.4"/>
-                <line x1="0" y1="236" x2="220" y2="236" stroke="#1e3a5f" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.4"/>
-                <line x1="73"  y1="0" x2="73"  y2="440" stroke="#1e3a5f" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.4"/>
-                <line x1="147" y1="0" x2="147" y2="440" stroke="#1e3a5f" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.4"/>
-                <text x="36"  y="52"  text-anchor="middle" font-size="15" font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">7</text>
-                <text x="110" y="52"  text-anchor="middle" font-size="15" font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">8</text>
-                <text x="184" y="52"  text-anchor="middle" font-size="15" font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">9</text>
-                <text x="36"  y="172" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">4</text>
-                <text x="110" y="172" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">5</text>
-                <text x="184" y="172" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">6</text>
-                <text x="36"  y="334" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">1</text>
-                <text x="110" y="334" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">2</text>
-                <text x="184" y="334" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">3</text>
-                <text x="110" y="215" text-anchor="middle" font-size="8"  font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">0=net</text>
-              </g>
+              <!-- Numpad zone grid (rebuilt dynamically by updateNumpadGrid()) -->
+              <g id="numpad-grid" style="display:none;"></g>
               <g id="shot-dots-group"></g>
             </svg>
             <div class="shot-popup" id="shot-popup" style="display:none;">
@@ -1429,6 +1414,14 @@ document.addEventListener('keydown', e => {
       return;
     }
 
+    // Deuce/Ad toggle (only when S is pre-selected)
+    if (pendingType === 'S' && pendingNx === null && (k === 'D' || k === 'A')) {
+      e.preventDefault();
+      serveSide = k;
+      setPreType('S'); // refresh indicator
+      return;
+    }
+
     // Serve direction (only after S is pre-selected and no position yet)
     if (pendingType === 'S' && pendingNx === null && ['W','B','T'].includes(k)) {
       e.preventDefault();
@@ -1568,29 +1561,51 @@ let courtOpen = false;
 let courtFlipped = false;
 let courtZonesVisible = false;
 
-// Numpad zone map: key → [visual_nx, visual_ny] (pre-flip, 0=top/left 1=bottom/right)
-const NUMPAD_ZONES = {
-  '7': [0.18, 0.10], '8': [0.50, 0.10], '9': [0.82, 0.10],
-  '4': [0.18, 0.35], '5': [0.50, 0.35], '6': [0.82, 0.35],
-  '1': [0.18, 0.72], '2': [0.50, 0.72], '3': [0.82, 0.72],
-  '0': [0.50, 0.50],
-};
+// Rally zones auto-alternate each shot: even shots → Player B's half, odd → Player A's half.
+// 7/8/9 = deep of the active half, 4/5/6 = service box, 1/2/3 = near net.
+function getNumpadZones() {
+  const onBSide = currentPointShots.length % 2 === 0;
+  const L = 0.18, C = 0.50, R = 0.82;
+  if (onBSide) {
+    return {
+      '7': [L, 0.12], '8': [C, 0.12], '9': [R, 0.12],  // B's backcourt
+      '4': [L, 0.34], '5': [C, 0.34], '6': [R, 0.34],  // B's service box
+      '1': [L, 0.45], '2': [C, 0.45], '3': [R, 0.45],  // near net, B side
+      '0': [C, 0.50],
+    };
+  } else {
+    return {
+      '7': [L, 0.88], '8': [C, 0.88], '9': [R, 0.88],  // A's backcourt
+      '4': [L, 0.66], '5': [C, 0.66], '6': [R, 0.66],  // A's service box
+      '1': [L, 0.55], '2': [C, 0.55], '3': [R, 0.55],  // near net, A side
+      '0': [C, 0.50],
+    };
+  }
+}
 
-// Serve zone map: W=wide, B=body, T=T-serve (visual coords in service box)
+// Serve zones by court side — W=wide, B=body, T=T-serve
+let serveSide = 'D'; // 'D' = deuce, 'A' = ad
 const SERVE_ZONES = {
-  'W': [0.15, 0.37],
-  'B': [0.50, 0.37],
-  'T': [0.82, 0.37],
+  'D': { 'W': [0.15, 0.37], 'B': [0.32, 0.37], 'T': [0.48, 0.37] },
+  'A': { 'W': [0.85, 0.37], 'B': [0.68, 0.37], 'T': [0.52, 0.37] },
 };
 
 const PRE_TYPE_COLOR = { F: '#2a5298', B: '#e87722', V: '#2d8a4e', S: '#7c3aed' };
-const PRE_TYPE_HINT  = { F: 'F  ·  numpad 1–9', B: 'B  ·  numpad 1–9', V: 'V  ·  numpad 1–9', S: 'S  ·  W / B / T' };
+
+function getPreTypeHint(type) {
+  if (type === 'S') {
+    const side = serveSide === 'D' ? 'Deuce' : 'Ad';
+    return `S  ·  ${side}  ·  W / B / T   (D or A to switch)`;
+  }
+  const side = currentPointShots.length % 2 === 0 ? "B's side" : "A's side";
+  return `${type}  ·  ${side}  ·  numpad 1–9`;
+}
 
 function setPreType(type) {
   pendingType = type;
   const el = document.getElementById('pending-type-status');
   if (el) {
-    el.textContent = PRE_TYPE_HINT[type];
+    el.textContent = getPreTypeHint(type);
     el.style.color = PRE_TYPE_COLOR[type];
     el.style.display = 'block';
   }
@@ -1603,7 +1618,7 @@ function clearPreType() {
 }
 
 function handleServeZone(key) {
-  const zone = SERVE_ZONES[key];
+  const zone = SERVE_ZONES[serveSide][key];
   if (!zone) return;
   const [visual_nx, visual_ny] = zone;
   pendingNx  = visual_nx;
@@ -1612,15 +1627,42 @@ function handleServeZone(key) {
   confirmShot();
 }
 
+function updateNumpadGrid() {
+  const grid = document.getElementById('numpad-grid');
+  if (!grid || !courtZonesVisible) return;
+  const zones = getNumpadZones();
+  const rows = [['7','8','9'], ['4','5','6'], ['1','2','3']];
+  // Horizontal dividers between rows
+  const nys = rows.map(r => zones[r[0]][1]);
+  const h1 = ((nys[0] + nys[1]) / 2 * COURT_H).toFixed(1);
+  const h2 = ((nys[1] + nys[2]) / 2 * COURT_H).toFixed(1);
+  const onBSide = currentPointShots.length % 2 === 0;
+  const sideLabel = onBSide ? "B's half" : "A's half";
+  grid.innerHTML =
+    `<line x1="0" y1="${h1}" x2="220" y2="${h1}" stroke="#1e3a5f" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.4"/>` +
+    `<line x1="0" y1="${h2}" x2="220" y2="${h2}" stroke="#1e3a5f" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.4"/>` +
+    `<line x1="73" y1="0" x2="73" y2="440" stroke="#1e3a5f" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.4"/>` +
+    `<line x1="147" y1="0" x2="147" y2="440" stroke="#1e3a5f" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.4"/>` +
+    rows.flat().map(k => {
+      const [nx, ny] = zones[k];
+      const x = (nx * COURT_W).toFixed(1), y = (ny * COURT_H + 5).toFixed(1);
+      return `<text x="${x}" y="${y}" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">${k}</text>`;
+    }).join('') +
+    `<text x="110" y="215" text-anchor="middle" font-size="8" font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">0=net</text>` +
+    `<text x="110" y="${onBSide ? 430 : 15}" text-anchor="middle" font-size="8" fill="#1e3a5f" opacity="0.4" font-family="sans-serif">${sideLabel}</text>`;
+}
+
 function toggleZoneGrid() {
   courtZonesVisible = !courtZonesVisible;
-  document.getElementById('numpad-grid').style.display = courtZonesVisible ? '' : 'none';
+  const grid = document.getElementById('numpad-grid');
+  grid.style.display = courtZonesVisible ? '' : 'none';
+  if (courtZonesVisible) updateNumpadGrid();
   const btn = document.getElementById('btn-zones');
   if (btn) { btn.textContent = courtZonesVisible ? 'Hide Zones' : 'Zones'; btn.style.borderColor = courtZonesVisible ? 'var(--blue)' : ''; btn.style.color = courtZonesVisible ? 'var(--blue)' : ''; }
 }
 
 function handleNumpadZone(key) {
-  const zone = NUMPAD_ZONES[key];
+  const zone = getNumpadZones()[key];
   if (!zone) return;
   const [visual_nx, visual_ny] = zone;
   pendingNx  = visual_nx;
@@ -1710,6 +1752,7 @@ function cancelShot() {
   clearPreType();
   document.getElementById('shot-popup').style.display = 'none';
   renderShotDots();
+  updateNumpadGrid();
 }
 
 function selectShotType(type) {
@@ -1741,12 +1784,14 @@ function confirmShot() {
   document.getElementById('shot-popup').style.display = 'none';
   renderShotDots();
   updateCourtBadge();
+  updateNumpadGrid();
 }
 
 function clearShots() {
   currentPointShots = [];
   cancelShot();
   updateCourtBadge();
+  updateNumpadGrid();
 }
 
 function updateCourtBadge() {
