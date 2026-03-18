@@ -1566,7 +1566,10 @@ let courtZonesVisible = false;
 // 7/8/9 = visually higher on screen (top of active half), 1/2/3 = lower.
 // activeAtTop accounts for court flip so the screen-position rule is always correct.
 function getNumpadZones() {
-  const onBSide = currentPointShots.length % 2 === 0;
+  const server = getServingPlayer();
+  const onBSide = server === 'A'
+    ? currentPointShots.length % 2 === 0
+    : currentPointShots.length % 2 !== 0;
   const L = 0.18, C = 0.50, R = 0.82;
   // activeAtTop = true when the active half is in the upper portion of the screen
   const activeAtTop = (onBSide !== courtFlipped);
@@ -1580,11 +1583,22 @@ function getNumpadZones() {
 }
 
 // Serve zones by court side — W=wide, B=body, T=T-serve
+// A serving → lands in B's service box (ny≈0.37)
+// B serving → lands in A's service box (ny≈0.63), W/T directions mirror
 let serveSide = 'D'; // 'D' = deuce, 'A' = ad
-const SERVE_ZONES = {
+const SERVE_ZONES_A = {
   'D': { 'W': [0.15, 0.37], 'B': [0.32, 0.37], 'T': [0.48, 0.37] },
   'A': { 'W': [0.85, 0.37], 'B': [0.68, 0.37], 'T': [0.52, 0.37] },
 };
+const SERVE_ZONES_B = {
+  'D': { 'W': [0.85, 0.63], 'B': [0.68, 0.63], 'T': [0.52, 0.63] },
+  'A': { 'W': [0.15, 0.63], 'B': [0.32, 0.63], 'T': [0.48, 0.63] },
+};
+
+function getServingPlayer() {
+  const val = getToggleVal('field-server');
+  return (!val || val === 'Player A' || val === cfg.playerName) ? 'A' : 'B';
+}
 
 const PRE_TYPE_COLOR = { F: '#2a5298', B: '#e87722', V: '#2d8a4e', S: '#7c3aed' };
 
@@ -1593,7 +1607,9 @@ function getPreTypeHint(type) {
     const side = serveSide === 'D' ? 'Deuce' : 'Ad';
     return `S  ·  ${side}  ·  W / B / T   (D or A to switch)`;
   }
-  const side = currentPointShots.length % 2 === 0 ? "B's side" : "A's side";
+  const server = getServingPlayer();
+  const onBSide2 = server === 'A' ? currentPointShots.length % 2 === 0 : currentPointShots.length % 2 !== 0;
+  const side = onBSide2 ? "B's side" : "A's side";
   return `${type}  ·  ${side}  ·  numpad 1–9`;
 }
 
@@ -1614,7 +1630,8 @@ function clearPreType() {
 }
 
 function handleServeZone(key) {
-  const zone = SERVE_ZONES[serveSide][key];
+  const serveZones = getServingPlayer() === 'A' ? SERVE_ZONES_A : SERVE_ZONES_B;
+  const zone = serveZones[serveSide][key];
   if (!zone) return;
   const [visual_nx, visual_ny] = zone;
   pendingNx  = visual_nx;
@@ -1632,7 +1649,8 @@ function updateNumpadGrid() {
   const nys = rows.map(r => zones[r[0]][1]);
   const h1 = ((nys[0] + nys[1]) / 2 * COURT_H).toFixed(1);
   const h2 = ((nys[1] + nys[2]) / 2 * COURT_H).toFixed(1);
-  const onBSide = currentPointShots.length % 2 === 0;
+  const server2 = getServingPlayer();
+  const onBSide = server2 === 'A' ? currentPointShots.length % 2 === 0 : currentPointShots.length % 2 !== 0;
   const sideLabel = onBSide ? "B's half" : "A's half";
   grid.innerHTML =
     `<line x1="0" y1="${h1}" x2="220" y2="${h1}" stroke="#1e3a5f" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.4"/>` +
