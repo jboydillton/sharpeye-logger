@@ -420,27 +420,6 @@
         <div id="server-display" style="font-size:13px;font-weight:600;color:var(--text);padding:6px 0;">—</div>
       </div>
       <div class="form-row">
-        <div class="field-label">1st Serve</div>
-        <div class="toggle-group" id="field-first-serve">
-          <button class="toggle" data-value="In">In</button>
-          <button class="toggle" data-value="Out">Out</button>
-        </div>
-      </div>
-      <div class="form-row" id="row-second-serve" style="display:none;">
-        <div class="field-label">2nd Serve</div>
-        <div class="toggle-group" id="field-second-serve">
-          <button class="toggle" data-value="In">In</button>
-          <button class="toggle" data-value="Out">Out</button>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="field-label">Winner</div>
-        <div class="toggle-group" id="field-winner">
-          <button class="toggle" data-value="Player A" id="tog-winner-a">Player A</button>
-          <button class="toggle" data-value="Player B" id="tog-winner-b">Player B</button>
-        </div>
-      </div>
-      <div class="form-row">
         <div class="field-label">End Type</div>
         <div class="toggle-group" id="field-end-type">
           <button class="toggle" data-value="Winner">Winner</button>
@@ -544,34 +523,6 @@
       <button class="modal-close" id="modal-close">×</button>
     </div>
     <div class="modal-body">
-      <div class="form-row">
-        <div class="field-label">Server</div>
-        <div class="toggle-group" id="modal-server">
-          <button class="toggle" data-value="Player A" id="modal-server-a">Player A</button>
-          <button class="toggle" data-value="Player B" id="modal-server-b">Player B</button>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="field-label">1st Serve</div>
-        <div class="toggle-group" id="modal-first-serve">
-          <button class="toggle" data-value="In">In</button>
-          <button class="toggle" data-value="Out">Out</button>
-        </div>
-      </div>
-      <div class="form-row" id="modal-row-second-serve" style="display:none;">
-        <div class="field-label">2nd Serve</div>
-        <div class="toggle-group" id="modal-second-serve">
-          <button class="toggle" data-value="In">In</button>
-          <button class="toggle" data-value="Out">Out</button>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="field-label">Winner</div>
-        <div class="toggle-group" id="modal-winner">
-          <button class="toggle" data-value="Player A" id="modal-winner-a">Player A</button>
-          <button class="toggle" data-value="Player B" id="modal-winner-b">Player B</button>
-        </div>
-      </div>
       <div class="form-row">
         <div class="field-label">End Type</div>
         <div class="toggle-group" id="modal-end-type">
@@ -959,31 +910,12 @@ function openEditModal(idx) {
   const pt = points[idx];
   document.getElementById('modal-title').textContent = `Edit Point #${idx + 1}`;
 
-  setToggleVal('modal-server', pt.Server, true);
-  setToggleVal('modal-first-serve', pt['First Serve'], false);
-
-  if (pt['Second Serve']) {
-    document.getElementById('modal-row-second-serve').style.display = 'flex';
-    setToggleVal('modal-second-serve', pt['Second Serve'], false);
-  } else {
-    document.getElementById('modal-row-second-serve').style.display = 'none';
-    clearToggleGroup('modal-second-serve');
-  }
-
-  setToggleVal('modal-winner', pt.Winner, true);
   setToggleVal('modal-end-type', pt['End Type'], false);
 
-  // Update player name buttons
-  document.getElementById('modal-server-a').textContent = cfg.playerName;
-  document.getElementById('modal-server-b').textContent = cfg.opponentName;
-  document.getElementById('modal-winner-a').textContent = cfg.playerName;
-  document.getElementById('modal-winner-b').textContent = cfg.opponentName;
-
-  // Shot info (read-only)
   const shots = pt.shots || [];
   const n = shots.length;
   document.getElementById('modal-shot-info').textContent =
-    n > 0 ? `${n} shot${n !== 1 ? 's' : ''} tracked on court` : 'No shots tracked';
+    n > 0 ? `${n} shot${n !== 1 ? 's' : ''} tracked · server: ${pt.Server}` : 'No shots tracked';
 
   document.getElementById('edit-modal').classList.add('open');
 }
@@ -994,27 +926,19 @@ function closeEditModal() {
 }
 
 function saveEdit() {
-  const server   = getToggleVal('modal-server');
-  const firstSrv = getToggleVal('modal-first-serve');
-  const secondSrv = firstSrv === 'Out' ? getToggleVal('modal-second-serve') : null;
-  const winner   = getToggleVal('modal-winner');
-  const endType  = getToggleVal('modal-end-type');
+  const endType = getToggleVal('modal-end-type');
+  if (!endType) { alert('Please select End Type'); return; }
 
-  const missing = [];
-  if (!server)    missing.push('Server');
-  if (!firstSrv)  missing.push('1st Serve');
-  if (firstSrv === 'Out' && !secondSrv) missing.push('2nd Serve');
-  if (!winner)    missing.push('Winner');
-  if (!endType)   missing.push('End Type');
-
-  if (missing.length) { alert(`Please fill in: ${missing.join(', ')}`); return; }
-
-  const shots = points[editIndex].shots || [];
-  const lastShot = shots.length > 0 ? { F: 'Forehand', B: 'Backhand', V: 'Volley / Overhead', S: 'Serve' }[shots[shots.length - 1].type] : points[editIndex]['Last Shot'];
+  const shots  = points[editIndex].shots || [];
+  const server = points[editIndex].Server;
+  const { firstSrv, secondSrv } = inferServeStatus(shots, endType);
+  const winner  = inferWinner(shots, server, endType) || points[editIndex].Winner;
+  const lastShot = shots.length > 0
+    ? { F: 'Forehand', B: 'Backhand', V: 'Volley / Overhead', S: 'Serve' }[shots[shots.length - 1].type]
+    : points[editIndex]['Last Shot'];
 
   points[editIndex] = {
     ...points[editIndex],
-    Server:           server,
     'First Serve':    firstSrv,
     'Second Serve':   secondSrv,
     Winner:           winner,
@@ -1077,44 +1001,56 @@ function initToggleGroup(groupId, usePlayerColors, onChangeCb) {
 // ─────────────────────────────────────────────────────────────────
 
 function resetForm() {
-  clearToggleGroup('field-first-serve');
-  document.getElementById('row-second-serve').style.display = 'none';
-  clearToggleGroup('field-second-serve');
-  clearToggleGroup('field-winner');
   clearToggleGroup('field-end-type');
   currentPointShots = [];
   renderShotDots();
   updateCourtBadge();
 }
 
+function inferWinner(shots, server, endType) {
+  if (!shots || shots.length === 0) return null;
+  const last = shots[shots.length - 1];
+  const returner = server === 'Player A' ? 'Player B' : 'Player A';
+  const hitter = last.seq % 2 === 1 ? server : returner;
+  return endType === 'Winner' ? hitter : (hitter === 'Player A' ? 'Player B' : 'Player A');
+}
+
+function inferServeStatus(shots, endType) {
+  if (!shots || shots.length === 0) return { firstSrv: null, secondSrv: null };
+  const firstOut = shots.length >= 2 && shots[1].type === 'S';
+  if (!firstOut) return { firstSrv: 'In', secondSrv: null };
+  // First serve out; double fault = only 2 shots and UE
+  const isDoubleFault = shots.length === 2 && endType === 'Unforced Error';
+  return { firstSrv: 'Out', secondSrv: isDoubleFault ? 'Out' : 'In' };
+}
+
 function logPoint() {
-  const server   = score.nextServer;
-  const firstSrv = getToggleVal('field-first-serve');
-  const secondSrv = firstSrv === 'Out' ? getToggleVal('field-second-serve') : null;
-  const winner   = getToggleVal('field-winner');
-  const endType  = getToggleVal('field-end-type');
+  const server  = score.nextServer;
+  const endType = getToggleVal('field-end-type');
+  const shots   = [...currentPointShots];
 
   const missing = [];
-  if (!firstSrv)  missing.push('1st Serve');
-  if (firstSrv === 'Out' && !secondSrv) missing.push('2nd Serve');
-  if (!winner)    missing.push('Winner');
-  if (!endType)   missing.push('End Type');
+  if (!endType)          missing.push('End Type');
+  if (shots.length === 0) missing.push('at least one shot on court tracker');
   if (missing.length) { alert(`Please fill in: ${missing.join(', ')}`); return; }
 
-  const shots   = [...currentPointShots];
-  const lastShot = shots.length > 0 ? { F: 'Forehand', B: 'Backhand', V: 'Volley / Overhead', S: 'Serve' }[shots[shots.length - 1].type] : null;
+  const { firstSrv, secondSrv } = inferServeStatus(shots, endType);
+  const winner  = inferWinner(shots, server, endType);
+  if (!winner) { alert('Could not infer winner — please track shots.'); return; }
+
+  const lastShot = { F: 'Forehand', B: 'Backhand', V: 'Volley / Overhead', S: 'Serve' }[shots[shots.length - 1].type];
   const netApp   = inferNetApproach(shots, server);
 
   points.push({
-    Timestamp:        new Date().toISOString(),
-    Server:           server,
-    'First Serve':    firstSrv,
-    'Second Serve':   secondSrv,
-    Winner:           winner,
-    'Number of Shots': shots.length || null,
-    'End Type':       endType,
-    'Last Shot':      lastShot,
-    'Net Approach':   netApp,
+    Timestamp:         new Date().toISOString(),
+    Server:            server,
+    'First Serve':     firstSrv,
+    'Second Serve':    secondSrv,
+    Winner:            winner,
+    'Number of Shots': shots.length,
+    'End Type':        endType,
+    'Last Shot':       lastShot,
+    'Net Approach':    netApp,
     shots,
   });
 
@@ -1264,7 +1200,6 @@ function updatePlayerLabels() {
   document.getElementById('logger-title').textContent =
     `${cfg.playerName} vs ${cfg.opponentName}`;
   const pairs = [
-    ['tog-winner-a',  cfg.playerName],  ['tog-winner-b',  cfg.opponentName],
     ['first-srv-a',   cfg.playerName],  ['first-srv-b',   cfg.opponentName],
     ['score-name-a',  cfg.playerName],  ['score-name-b',  cfg.opponentName],
   ];
@@ -1281,35 +1216,10 @@ initToggleGroup('cfg-first-server', false);
 initToggleGroup('field-match-result', false);
 
 // Point form toggles
-initToggleGroup('field-winner', true);
 initToggleGroup('field-end-type', false);
-initToggleGroup('field-first-serve', false, val => {
-  document.getElementById('row-second-serve').style.display = val === 'Out' ? 'flex' : 'none';
-  if (val === 'In') clearToggleGroup('field-second-serve');
-});
-initToggleGroup('field-second-serve', false, val => {
-  if (val === 'Out') {
-    // Double fault auto-fill
-    const srv = score.nextServer;
-    setToggleVal('field-winner', srv === 'Player A' ? 'Player B' : 'Player A', true);
-    setToggleVal('field-end-type', 'Unforced Error', false);
-    // Add a serve shot at center court if no shots yet
-    if (currentPointShots.length === 0) {
-      currentPointShots.push({ nx: 0.5, ny: 1.0, type: 'S', spin: 'flat', seq: 1 });
-      renderShotDots(); updateCourtBadge();
-    }
-  }
-});
 
 // Modal toggles
-initToggleGroup('modal-server', true);
-initToggleGroup('modal-winner', true);
 initToggleGroup('modal-end-type', false);
-initToggleGroup('modal-first-serve', false, val => {
-  document.getElementById('modal-row-second-serve').style.display = val === 'Out' ? 'flex' : 'none';
-  if (val === 'In') clearToggleGroup('modal-second-serve');
-});
-initToggleGroup('modal-second-serve', false);
 
 // Logger buttons
 document.getElementById('btn-log').addEventListener('click', logPoint);
@@ -1628,9 +1538,10 @@ function handleServeZone(key) {
   const serveZones = getServingPlayer() === 'A' ? SERVE_ZONES_A : SERVE_ZONES_B;
   const zone = serveZones[serveSide][key];
   if (!zone) return;
-  // Serve zones are already in logical (physical court) coordinates — no flip needed
   const [nx, ny] = zone;
-  pendingNx  = nx;
+  // ny is logical (physical court position), no flip needed
+  // nx mirrors when court is flipped (left/right swap with 180° rotation)
+  pendingNx  = courtFlipped ? 1 - nx : nx;
   pendingNy  = ny;
   pendingNet = false;
   confirmShot();
