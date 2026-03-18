@@ -464,7 +464,7 @@
             <div class="shot-legend-item"><span class="legend-dot" style="background:#2d8a4e"></span>V Volley/OH</div>
             <div class="shot-legend-item"><span class="legend-dot" style="background:#7c3aed"></span>S Serve</div>
           </div>
-          <div class="court-hint">Click court <em>or</em> <strong>Numpad 1–9</strong> to place shot · <strong>0</strong> = net · Popup open: <kbd>F</kbd><kbd>B</kbd><kbd>V</kbd><kbd>S</kbd> = type · <kbd>T</kbd><kbd>C</kbd><kbd>P</kbd><kbd>N</kbd> = Topspin/sliCe/flat/none · <kbd>Esc</kbd> = cancel</div>
+          <div class="court-hint">Keyboard: <kbd>F</kbd><kbd>B</kbd><kbd>V</kbd> then numpad 1–9 · <kbd>S</kbd> then <kbd>W</kbd><kbd>B</kbd><kbd>T</kbd> (Wide/Body/T) · <kbd>0</kbd> = net · <kbd>Esc</kbd> = cancel · Or click court → popup</div>
           <div class="court-wrapper">
             <svg id="court-svg" viewBox="-15 -15 250 470" width="220" height="430">
               <rect x="0" y="0" width="220" height="440" fill="#afd8f7"/>
@@ -521,6 +521,7 @@
               <button class="popup-cancel" id="popup-cancel">× Cancel</button>
             </div>
           </div>
+          <div id="pending-type-status" style="display:none;text-align:center;font-size:12px;font-weight:700;padding:4px 0;letter-spacing:0.04em;border-radius:4px;margin-bottom:4px;"></div>
           <div class="court-footer">
             <span class="court-shot-count" id="court-shot-count">Click court to track shots</span>
             <div style="display:flex;gap:6px;">
@@ -1392,23 +1393,46 @@ document.addEventListener('keydown', e => {
     if (k === 'N') { e.preventDefault(); selectShotSpin('none'); return; }
     if (e.key === 'Escape') { cancelShot(); return; }
   }
-  // Numpad zone shortcuts (only when court is open, popup is not, logger is active)
-  const NUMPAD_CODE_MAP = {
-    'Numpad0':'0','Numpad1':'1','Numpad2':'2','Numpad3':'3','Numpad4':'4',
-    'Numpad5':'5','Numpad6':'6','Numpad7':'7','Numpad8':'8','Numpad9':'9',
-  };
-  if (NUMPAD_CODE_MAP[e.code] !== undefined
-      && courtOpen
-      && document.getElementById('page-logger').classList.contains('active')
-      && !document.getElementById('edit-modal').classList.contains('open')
-      && (!popup || popup.style.display !== 'block')) {
-    e.preventDefault();
-    handleNumpadZone(NUMPAD_CODE_MAP[e.code]);
-    return;
+  const onLogger  = document.getElementById('page-logger').classList.contains('active');
+  const modalOpen = document.getElementById('edit-modal').classList.contains('open');
+  const popupOpen = popup && popup.style.display === 'block';
+
+  if (courtOpen && onLogger && !modalOpen && !popupOpen) {
+    const k = e.key.toUpperCase();
+
+    // Numpad zone keys
+    const NUMPAD_CODE_MAP = {
+      'Numpad0':'0','Numpad1':'1','Numpad2':'2','Numpad3':'3','Numpad4':'4',
+      'Numpad5':'5','Numpad6':'6','Numpad7':'7','Numpad8':'8','Numpad9':'9',
+    };
+    if (NUMPAD_CODE_MAP[e.code] !== undefined) {
+      e.preventDefault();
+      handleNumpadZone(NUMPAD_CODE_MAP[e.code]);
+      return;
+    }
+
+    // Type pre-selection: F / B / V / S
+    if (['F','B','V','S'].includes(k)) {
+      e.preventDefault();
+      setPreType(k);
+      return;
+    }
+
+    // Serve direction (only after S is pre-selected and no position yet)
+    if (pendingType === 'S' && pendingNx === null && ['W','B','T'].includes(k)) {
+      e.preventDefault();
+      handleServeZone(k);
+      return;
+    }
+
+    // Escape cancels pre-type (when no position set yet)
+    if (e.key === 'Escape' && pendingType !== null && pendingNx === null) {
+      clearPreType();
+      return;
+    }
   }
 
-  if (e.key === 'Enter' && !document.getElementById('edit-modal').classList.contains('open')
-      && document.getElementById('page-logger').classList.contains('active')) {
+  if (e.key === 'Enter' && !modalOpen && onLogger) {
     e.preventDefault();
     logPoint();
   }
@@ -1541,6 +1565,42 @@ const NUMPAD_ZONES = {
   '0': [0.50, 0.50],
 };
 
+// Serve zone map: W=wide, B=body, T=T-serve (visual coords in service box)
+const SERVE_ZONES = {
+  'W': [0.15, 0.37],
+  'B': [0.50, 0.37],
+  'T': [0.82, 0.37],
+};
+
+const PRE_TYPE_COLOR = { F: '#2a5298', B: '#e87722', V: '#2d8a4e', S: '#7c3aed' };
+const PRE_TYPE_HINT  = { F: 'F  ·  numpad 1–9', B: 'B  ·  numpad 1–9', V: 'V  ·  numpad 1–9', S: 'S  ·  W / B / T' };
+
+function setPreType(type) {
+  pendingType = type;
+  const el = document.getElementById('pending-type-status');
+  if (el) {
+    el.textContent = PRE_TYPE_HINT[type];
+    el.style.color = PRE_TYPE_COLOR[type];
+    el.style.display = 'block';
+  }
+}
+
+function clearPreType() {
+  pendingType = null;
+  const el = document.getElementById('pending-type-status');
+  if (el) el.style.display = 'none';
+}
+
+function handleServeZone(key) {
+  const zone = SERVE_ZONES[key];
+  if (!zone) return;
+  const [visual_nx, visual_ny] = zone;
+  pendingNx  = visual_nx;
+  pendingNy  = courtFlipped ? 1 - visual_ny : visual_ny;
+  pendingNet = false;
+  confirmShot();
+}
+
 function toggleZoneGrid() {
   courtZonesVisible = !courtZonesVisible;
   document.getElementById('numpad-grid').style.display = courtZonesVisible ? '' : 'none';
@@ -1552,14 +1612,20 @@ function handleNumpadZone(key) {
   const zone = NUMPAD_ZONES[key];
   if (!zone) return;
   const [visual_nx, visual_ny] = zone;
-  pendingNx   = visual_nx;
-  pendingNy   = courtFlipped ? 1 - visual_ny : visual_ny;
-  pendingNet  = (key === '0');
-  pendingType = null;
+  pendingNx  = visual_nx;
+  pendingNy  = courtFlipped ? 1 - visual_ny : visual_ny;
+  pendingNet = (key === '0');
+
+  if (pendingType !== null) {
+    // Type already pre-selected — confirm directly, no popup
+    confirmShot();
+    return;
+  }
+
+  // No pre-type — open popup so user can pick type (mouse fallback)
   pendingSpin = null;
   ['F','B','V','S'].forEach(t => document.getElementById('shot-type-' + t).className = 'shot-type-btn');
   ['topspin','slice','flat','none'].forEach(s => document.getElementById('shot-spin-' + s).className = 'shot-spin-btn');
-  // Position popup at the visual zone location on the SVG
   const svg     = document.getElementById('court-svg');
   const svgRect = svg.getBoundingClientRect();
   const vb      = svg.viewBox.baseVal;
@@ -1599,9 +1665,17 @@ function svgFromNorm(nx, ny) { return { sx: nx * COURT_W, sy: ny * COURT_H }; }
 function handleCourtClick(e) {
   e.stopPropagation();
   const { sx, sy } = svgPoint(e);
-  pendingNx = sx / COURT_W;
-  pendingNy = courtFlipped ? 1 - (sy / COURT_H) : sy / COURT_H;
-  pendingType = null;
+  pendingNx  = sx / COURT_W;
+  pendingNy  = courtFlipped ? 1 - (sy / COURT_H) : sy / COURT_H;
+  pendingNet = false;
+
+  if (pendingType !== null) {
+    // Type already pre-selected — confirm directly, no popup
+    confirmShot();
+    return;
+  }
+
+  // No pre-type — open popup
   pendingSpin = null;
   ['F','B','V','S'].forEach(t => document.getElementById('shot-type-' + t).className = 'shot-type-btn');
   ['topspin','slice','flat','none'].forEach(s => document.getElementById('shot-spin-' + s).className = 'shot-spin-btn');
@@ -1620,8 +1694,9 @@ function handleCourtClick(e) {
 
 function cancelShot() {
   pendingNx = null; pendingNy = null;
-  pendingType = null; pendingSpin = null;
+  pendingSpin = null;
   pendingNet = false;
+  clearPreType();
   document.getElementById('shot-popup').style.display = 'none';
   renderShotDots();
 }
@@ -1649,8 +1724,9 @@ function confirmShot() {
   if (pendingNet) shot.net = true;
   currentPointShots.push(shot);
   pendingNx = null; pendingNy = null;
-  pendingType = null; pendingSpin = null;
+  pendingSpin = null;
   pendingNet = false;
+  clearPreType();
   document.getElementById('shot-popup').style.display = 'none';
   renderShotDots();
   updateCourtBadge();
