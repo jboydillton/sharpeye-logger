@@ -1631,7 +1631,7 @@ function selectShotType(type) {
   ['F','B','V','S'].forEach(t =>
     document.getElementById('shot-type-' + t).className = 'shot-type-btn' + (t === type ? ' sel-' + t : '')
   );
-  if (pendingSpin !== null) confirmShot();
+  confirmShot();
 }
 
 function selectShotSpin(spin) {
