@@ -1004,6 +1004,9 @@ function initToggleGroup(groupId, usePlayerColors, onChangeCb) {
 function resetForm() {
   clearToggleGroup('field-end-type');
   currentPointShots = [];
+  // Auto-set serve side: even points played in current game = deuce, odd = ad
+  const totalPts = score.currentGame.player + score.currentGame.opponent;
+  serveSide = totalPts % 2 === 0 ? 'D' : 'A';
   renderShotDots();
   updateCourtBadge();
 }
