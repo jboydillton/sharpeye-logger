@@ -1323,6 +1323,7 @@ document.getElementById('btn-flip-court').addEventListener('click', () => {
   courtFlipped = !courtFlipped;
   updateCourtLabels();
   renderShotDots();
+  updateNumpadGrid();
 });
 
 // Modal buttons
@@ -1562,25 +1563,20 @@ let courtFlipped = false;
 let courtZonesVisible = false;
 
 // Rally zones auto-alternate each shot: even shots → Player B's half, odd → Player A's half.
-// 7/8/9 = deep of the active half, 4/5/6 = service box, 1/2/3 = near net.
+// 7/8/9 = visually higher on screen (top of active half), 1/2/3 = lower.
+// activeAtTop accounts for court flip so the screen-position rule is always correct.
 function getNumpadZones() {
   const onBSide = currentPointShots.length % 2 === 0;
   const L = 0.18, C = 0.50, R = 0.82;
-  if (onBSide) {
-    return {
-      '7': [L, 0.12], '8': [C, 0.12], '9': [R, 0.12],  // B's backcourt
-      '4': [L, 0.34], '5': [C, 0.34], '6': [R, 0.34],  // B's service box
-      '1': [L, 0.45], '2': [C, 0.45], '3': [R, 0.45],  // near net, B side
-      '0': [C, 0.50],
-    };
-  } else {
-    return {
-      '7': [L, 0.88], '8': [C, 0.88], '9': [R, 0.88],  // A's backcourt
-      '4': [L, 0.66], '5': [C, 0.66], '6': [R, 0.66],  // A's service box
-      '1': [L, 0.55], '2': [C, 0.55], '3': [R, 0.55],  // near net, A side
-      '0': [C, 0.50],
-    };
-  }
+  // activeAtTop = true when the active half is in the upper portion of the screen
+  const activeAtTop = (onBSide !== courtFlipped);
+  const [t, m, b] = activeAtTop ? [0.12, 0.34, 0.45] : [0.55, 0.66, 0.88];
+  return {
+    '7': [L, t], '8': [C, t], '9': [R, t],
+    '4': [L, m], '5': [C, m], '6': [R, m],
+    '1': [L, b], '2': [C, b], '3': [R, b],
+    '0': [C, 0.50],
+  };
 }
 
 // Serve zones by court side — W=wide, B=body, T=T-serve
