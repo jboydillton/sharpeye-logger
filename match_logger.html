@@ -559,7 +559,7 @@
       </p>
       <div id="set-fields"></div>
       <div class="field" style="margin-top:16px;">
-        <label>Match Result</label>
+        <label>Match Result <span style="color:var(--danger);font-weight:700;">*</span> <span style="font-size:12px;color:var(--muted);font-weight:400;">(required before downloading config or uploading)</span></label>
         <div class="toggle-group" id="field-match-result">
           <button class="toggle" data-value="W">Win (W)</button>
           <button class="toggle" data-value="L">Loss (L)</button>
@@ -1449,8 +1449,9 @@ async function uploadToSupabase() {
       btn.textContent = '✓ Uploaded';
     } else {
       const errText = await resp.text();
-      setUploadStatus('Upload failed — please download the xlsx files as backup.', false);
-      console.error('Supabase error:', errText);
+      let detail = '';
+      try { detail = JSON.parse(errText).message || errText; } catch { detail = errText; }
+      setUploadStatus(`Upload failed (${resp.status}): ${detail}`, false);
       btn.disabled = false;
       btn.textContent = '☁ Upload to SharpEye Database';
     }
