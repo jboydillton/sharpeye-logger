@@ -1404,25 +1404,25 @@ document.addEventListener('keydown', e => {
       return;
     }
 
+    // Serve-specific keys (checked first so B=Body isn't captured as Backhand)
+    if (pendingType === 'S' && pendingNx === null) {
+      if (k === 'D' || k === 'A') {
+        e.preventDefault();
+        serveSide = k;
+        setPreType('S'); // refresh indicator
+        return;
+      }
+      if (['W','B','T'].includes(k)) {
+        e.preventDefault();
+        handleServeZone(k);
+        return;
+      }
+    }
+
     // Type pre-selection: F / B / V / S
     if (['F','B','V','S'].includes(k)) {
       e.preventDefault();
       setPreType(k);
-      return;
-    }
-
-    // Deuce/Ad toggle (only when S is pre-selected)
-    if (pendingType === 'S' && pendingNx === null && (k === 'D' || k === 'A')) {
-      e.preventDefault();
-      serveSide = k;
-      setPreType('S'); // refresh indicator
-      return;
-    }
-
-    // Serve direction (only after S is pre-selected and no position yet)
-    if (pendingType === 'S' && pendingNx === null && ['W','B','T'].includes(k)) {
-      e.preventDefault();
-      handleServeZone(k);
       return;
     }
 
@@ -1628,9 +1628,10 @@ function handleServeZone(key) {
   const serveZones = getServingPlayer() === 'A' ? SERVE_ZONES_A : SERVE_ZONES_B;
   const zone = serveZones[serveSide][key];
   if (!zone) return;
-  const [visual_nx, visual_ny] = zone;
-  pendingNx  = visual_nx;
-  pendingNy  = courtFlipped ? 1 - visual_ny : visual_ny;
+  // Serve zones are already in logical (physical court) coordinates — no flip needed
+  const [nx, ny] = zone;
+  pendingNx  = nx;
+  pendingNy  = ny;
   pendingNet = false;
   confirmShot();
 }
