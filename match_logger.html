@@ -454,6 +454,7 @@
         <div class="court-tracker-hdr" id="court-tracker-hdr">
           <span>Court Tracker</span>
           <span class="court-shots-badge" id="court-shots-badge"></span>
+          <button id="btn-flip-court" title="Flip court — swap which end is Player A / Player B" style="font-size:11px;padding:2px 8px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;margin-right:4px;">⇅ Flip</button>
           <span class="court-chevron" id="court-chevron">▼</span>
         </div>
         <div class="court-tracker-body" id="court-tracker-body">
@@ -481,8 +482,8 @@
               <line x1="0" y1="220" x2="220" y2="220" stroke="#1e3a5f" stroke-width="4" opacity="0.85"/>
               <circle cx="0" cy="220" r="4" fill="#1e3a5f" opacity="0.85"/>
               <circle cx="220" cy="220" r="4" fill="#1e3a5f" opacity="0.85"/>
-              <text x="110" y="-4" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">Opp</text>
-              <text x="110" y="456" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">You (A)</text>
+              <text id="court-label-top" x="110" y="-4" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">Player B</text>
+              <text id="court-label-bottom" x="110" y="456" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">Player A</text>
               <g id="shot-dots-group"></g>
             </svg>
             <div class="shot-popup" id="shot-popup" style="display:none;">
@@ -657,8 +658,8 @@
           <line x1="0" y1="220" x2="220" y2="220" stroke="#1e3a5f" stroke-width="4" opacity="0.85"/>
           <circle cx="0" cy="220" r="4" fill="#1e3a5f" opacity="0.85"/>
           <circle cx="220" cy="220" r="4" fill="#1e3a5f" opacity="0.85"/>
-          <text x="110" y="-4" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">Opp</text>
-          <text x="110" y="456" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">You (A)</text>
+          <text id="heatmap-label-top" x="110" y="-4" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">Player B</text>
+          <text id="heatmap-label-bottom" x="110" y="456" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">Player A</text>
         </svg>
         <canvas id="heatmap-canvas" style="display:none;"></canvas>
       </div>
@@ -1236,6 +1237,19 @@ function showPage(id) {
   document.getElementById(id).classList.add('active');
 }
 
+function updateCourtLabels() {
+  const topLabel    = courtFlipped ? cfg.playerName    : cfg.opponentName;
+  const bottomLabel = courtFlipped ? cfg.opponentName  : cfg.playerName;
+  const el1 = document.getElementById('court-label-top');
+  const el2 = document.getElementById('court-label-bottom');
+  const el3 = document.getElementById('heatmap-label-top');
+  const el4 = document.getElementById('heatmap-label-bottom');
+  if (el1) el1.textContent = topLabel;
+  if (el2) el2.textContent = bottomLabel;
+  if (el3) el3.textContent = topLabel;
+  if (el4) el4.textContent = bottomLabel;
+}
+
 function updatePlayerLabels() {
   document.getElementById('logger-title').textContent =
     `${cfg.playerName} vs ${cfg.opponentName}`;
@@ -1246,6 +1260,7 @@ function updatePlayerLabels() {
     ['score-name-a',  cfg.playerName],  ['score-name-b',  cfg.opponentName],
   ];
   pairs.forEach(([id, name]) => { const el = document.getElementById(id); if(el) el.textContent = name; });
+  updateCourtLabels();
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -1412,31 +1427,31 @@ async function uploadToSupabase() {
   document.getElementById('upload-status').style.display = 'none';
 
   const body = {
-    player_name:      cfg.playerName,
-    player_utr:       cfg.playerUtr,
-    player_gender:    cfg.playerGender,
-    opponent_name:    cfg.opponentName,
-    opponent_utr:     cfg.opponentUtr,
-    match_date:       cfg.matchDate || null,
-    org_name:         cfg.orgName || null,
-    ad_format:        cfg.adFormat,
-    match_result:     result,
-    set1_player:      getSetVal('set1-p'),
-    set1_opponent:    getSetVal('set1-o'),
-    set1_tb_player:   getSetVal('set1-tbp'),
-    set1_tb_opponent: getSetVal('set1-tbo'),
-    set2_player:      getSetVal('set2-p'),
-    set2_opponent:    getSetVal('set2-o'),
-    set2_tb_player:   getSetVal('set2-tbp'),
-    set2_tb_opponent: getSetVal('set2-tbo'),
-    set3_player:      getSetVal('set3-p'),
-    set3_opponent:    getSetVal('set3-o'),
-    total_points:     points.length,
-    points:           points,
+    player_name:            cfg.playerName,
+    player_utr:             cfg.playerUtr,
+    player_gender:          cfg.playerGender,
+    opponent_name:          cfg.opponentName,
+    opponent_utr:           cfg.opponentUtr,
+    match_date:             cfg.matchDate || null,
+    org_name:               cfg.orgName || null,
+    ad_format:              cfg.adFormat,
+    match_tiebreak:         cfg.matchTiebreak,
+    match_result:           result,
+    set1_player:            getSetVal('set1-p'),
+    set1_opponent:          getSetVal('set1-o'),
+    set1_tiebreak_player:   getSetVal('set1-tbp'),
+    set1_tiebreak_opponent: getSetVal('set1-tbo'),
+    set2_player:            getSetVal('set2-p'),
+    set2_opponent:          getSetVal('set2-o'),
+    set2_tiebreak_player:   getSetVal('set2-tbp'),
+    set2_tiebreak_opponent: getSetVal('set2-tbo'),
+    set3_player:            getSetVal('set3-p'),
+    set3_opponent:          getSetVal('set3-o'),
+    match_log:              points,
   };
 
   try {
-    const resp = await fetch(`${SUPABASE_URL}/rest/v1/match_submissions`, {
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/match_jobs`, {
       method: 'POST',
       headers: {
         'apikey': SUPABASE_KEY,
@@ -1448,7 +1463,7 @@ async function uploadToSupabase() {
     });
 
     if (resp.ok) {
-      setUploadStatus('Match uploaded successfully!', true);
+      setUploadStatus('✓ Uploaded! Report will be generated shortly.', true);
       btn.textContent = '✓ Uploaded';
     } else {
       const errText = await resp.text();
@@ -1479,6 +1494,7 @@ let currentPointShots = [];
 let pendingNx = null, pendingNy = null;
 let pendingType = null, pendingSpin = null;
 let courtOpen = false;
+let courtFlipped = false;
 
 function toggleCourt() {
   courtOpen = !courtOpen;
@@ -1502,7 +1518,7 @@ function handleCourtClick(e) {
   e.stopPropagation();
   const { sx, sy } = svgPoint(e);
   pendingNx = sx / COURT_W;
-  pendingNy = sy / COURT_H;
+  pendingNy = courtFlipped ? 1 - (sy / COURT_H) : sy / COURT_H;
   pendingType = null;
   pendingSpin = null;
   ['F','B','V','S'].forEach(t => document.getElementById('shot-type-' + t).className = 'shot-type-btn');
@@ -1571,13 +1587,15 @@ function renderShotDots() {
   if (!g) return;
   let html = '';
   currentPointShots.forEach(s => {
-    const { sx, sy } = svgFromNorm(s.nx, s.ny);
+    const displayNy = courtFlipped ? 1 - s.ny : s.ny;
+    const { sx, sy } = svgFromNorm(s.nx, displayNy);
     const c = SHOT_COLORS[s.type] || '#888';
     html += `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="8" fill="${c}" opacity="0.88" stroke="white" stroke-width="1.5"/>` +
             `<text x="${sx.toFixed(1)}" y="${(sy + 3.5).toFixed(1)}" text-anchor="middle" font-size="8.5" font-weight="bold" fill="white" font-family="sans-serif" pointer-events="none">${s.type}</text>`;
   });
   if (pendingNx !== null) {
-    const { sx, sy } = svgFromNorm(pendingNx, pendingNy);
+    const displayNy = courtFlipped ? 1 - pendingNy : pendingNy;
+    const { sx, sy } = svgFromNorm(pendingNx, displayNy);
     html += `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="8" fill="#888" opacity="0.35" stroke="white" stroke-width="1.5"/>`;
   }
   g.innerHTML = html;
@@ -1594,6 +1612,12 @@ function inferNetApproach(shots, server) {
 
 (function initCourt() {
   document.getElementById('court-tracker-hdr').addEventListener('click', toggleCourt);
+  document.getElementById('btn-flip-court').addEventListener('click', e => {
+    e.stopPropagation(); // don't toggle the court open/closed
+    courtFlipped = !courtFlipped;
+    updateCourtLabels();
+    renderShotDots();
+  });
   document.getElementById('court-svg').addEventListener('click', handleCourtClick);
   document.getElementById('popup-cancel').addEventListener('click', e => { e.stopPropagation(); cancelShot(); });
   document.getElementById('btn-clear-shots').addEventListener('click', clearShots);
