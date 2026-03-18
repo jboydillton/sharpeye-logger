@@ -360,10 +360,17 @@
 
   <div class="logger-bar">
     <h1 id="logger-title">Player A vs Player B</h1>
-    <button class="btn-secondary" id="btn-end"
-            style="border-color:rgba(255,255,255,0.5);color:#fff;font-size:12px;padding:6px 14px;">
-      End Match &amp; Export
-    </button>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button id="btn-flip-court"
+              style="border:1.5px solid rgba(255,255,255,0.4);color:rgba(255,255,255,0.85);background:rgba(255,255,255,0.08);border-radius:var(--radius);font-size:12px;padding:6px 14px;cursor:pointer;font-weight:600;"
+              title="Flip court — swap Player A / Player B ends">
+        ⇅ Flip Court
+      </button>
+      <button class="btn-secondary" id="btn-end"
+              style="border-color:rgba(255,255,255,0.5);color:#fff;font-size:12px;padding:6px 14px;">
+        End Match &amp; Export
+      </button>
+    </div>
   </div>
 
   <!-- Mobile tab bar (hidden on desktop via CSS) -->
@@ -410,31 +417,7 @@
     <div class="point-form-panel">
       <div class="form-row">
         <div class="field-label">Server</div>
-        <div class="toggle-group" id="field-server">
-          <button class="toggle" data-value="Player A" id="tog-server-a">Player A</button>
-          <button class="toggle" data-value="Player B" id="tog-server-b">Player B</button>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="field-label">1st Serve</div>
-        <div class="toggle-group" id="field-first-serve">
-          <button class="toggle" data-value="In">In</button>
-          <button class="toggle" data-value="Out">Out</button>
-        </div>
-      </div>
-      <div class="form-row" id="row-second-serve" style="display:none;">
-        <div class="field-label">2nd Serve</div>
-        <div class="toggle-group" id="field-second-serve">
-          <button class="toggle" data-value="In">In</button>
-          <button class="toggle" data-value="Out">Out</button>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="field-label">Winner</div>
-        <div class="toggle-group" id="field-winner">
-          <button class="toggle" data-value="Player A" id="tog-winner-a">Player A</button>
-          <button class="toggle" data-value="Player B" id="tog-winner-b">Player B</button>
-        </div>
+        <div id="server-display" style="font-size:13px;font-weight:600;color:var(--text);padding:6px 0;">—</div>
       </div>
       <div class="form-row">
         <div class="field-label">End Type</div>
@@ -463,7 +446,7 @@
             <div class="shot-legend-item"><span class="legend-dot" style="background:#2d8a4e"></span>V Volley/OH</div>
             <div class="shot-legend-item"><span class="legend-dot" style="background:#7c3aed"></span>S Serve</div>
           </div>
-          <div class="court-hint">Click court to place shot · Popup open: <kbd>F</kbd><kbd>B</kbd><kbd>V</kbd><kbd>S</kbd> = type · <kbd>T</kbd><kbd>C</kbd><kbd>P</kbd><kbd>N</kbd> = Topspin/sliCe/flat/none · <kbd>Esc</kbd> = cancel</div>
+          <div class="court-hint">Keyboard: <kbd>F</kbd><kbd>B</kbd><kbd>V</kbd> → numpad 1–9 (zones auto-flip each shot) · <kbd>S</kbd> → <kbd>D</kbd>/<kbd>A</kbd> (Deuce/Ad) → <kbd>W</kbd><kbd>B</kbd><kbd>T</kbd> · <kbd>0</kbd> = net · <kbd>Esc</kbd> = cancel</div>
           <div class="court-wrapper">
             <svg id="court-svg" viewBox="-15 -15 250 470" width="220" height="430">
               <rect x="0" y="0" width="220" height="440" fill="#afd8f7"/>
@@ -481,8 +464,10 @@
               <line x1="0" y1="220" x2="220" y2="220" stroke="#1e3a5f" stroke-width="4" opacity="0.85"/>
               <circle cx="0" cy="220" r="4" fill="#1e3a5f" opacity="0.85"/>
               <circle cx="220" cy="220" r="4" fill="#1e3a5f" opacity="0.85"/>
-              <text x="110" y="-4" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">Opp</text>
-              <text x="110" y="456" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">You (A)</text>
+              <text id="court-label-top" x="110" y="-4" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">Player B</text>
+              <text id="court-label-bottom" x="110" y="456" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">Player A</text>
+              <!-- Numpad zone grid (rebuilt dynamically by updateNumpadGrid()) -->
+              <g id="numpad-grid" style="display:none;"></g>
               <g id="shot-dots-group"></g>
             </svg>
             <div class="shot-popup" id="shot-popup" style="display:none;">
@@ -503,9 +488,13 @@
               <button class="popup-cancel" id="popup-cancel">× Cancel</button>
             </div>
           </div>
+          <div id="pending-type-status" style="display:none;text-align:center;font-size:12px;font-weight:700;padding:4px 0;letter-spacing:0.04em;border-radius:4px;margin-bottom:4px;"></div>
           <div class="court-footer">
             <span class="court-shot-count" id="court-shot-count">Click court to track shots</span>
-            <button class="btn-clear-shots" id="btn-clear-shots">Clear</button>
+            <div style="display:flex;gap:6px;">
+              <button class="btn-clear-shots" id="btn-zones">Zones</button>
+              <button class="btn-clear-shots" id="btn-clear-shots">Clear</button>
+            </div>
           </div>
         </div>
       </div>
@@ -534,34 +523,6 @@
       <button class="modal-close" id="modal-close">×</button>
     </div>
     <div class="modal-body">
-      <div class="form-row">
-        <div class="field-label">Server</div>
-        <div class="toggle-group" id="modal-server">
-          <button class="toggle" data-value="Player A" id="modal-server-a">Player A</button>
-          <button class="toggle" data-value="Player B" id="modal-server-b">Player B</button>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="field-label">1st Serve</div>
-        <div class="toggle-group" id="modal-first-serve">
-          <button class="toggle" data-value="In">In</button>
-          <button class="toggle" data-value="Out">Out</button>
-        </div>
-      </div>
-      <div class="form-row" id="modal-row-second-serve" style="display:none;">
-        <div class="field-label">2nd Serve</div>
-        <div class="toggle-group" id="modal-second-serve">
-          <button class="toggle" data-value="In">In</button>
-          <button class="toggle" data-value="Out">Out</button>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="field-label">Winner</div>
-        <div class="toggle-group" id="modal-winner">
-          <button class="toggle" data-value="Player A" id="modal-winner-a">Player A</button>
-          <button class="toggle" data-value="Player B" id="modal-winner-b">Player B</button>
-        </div>
-      </div>
       <div class="form-row">
         <div class="field-label">End Type</div>
         <div class="toggle-group" id="modal-end-type">
@@ -657,8 +618,8 @@
           <line x1="0" y1="220" x2="220" y2="220" stroke="#1e3a5f" stroke-width="4" opacity="0.85"/>
           <circle cx="0" cy="220" r="4" fill="#1e3a5f" opacity="0.85"/>
           <circle cx="220" cy="220" r="4" fill="#1e3a5f" opacity="0.85"/>
-          <text x="110" y="-4" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">Opp</text>
-          <text x="110" y="456" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">You (A)</text>
+          <text id="heatmap-label-top" x="110" y="-4" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">Player B</text>
+          <text id="heatmap-label-bottom" x="110" y="456" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">Player A</text>
         </svg>
         <canvas id="heatmap-canvas" style="display:none;"></canvas>
       </div>
@@ -867,6 +828,9 @@ function renderScore() {
   document.getElementById('pts-logged').textContent =
     `${points.length} point${points.length !== 1 ? 's' : ''} logged`;
 
+  const srvDisp = document.getElementById('server-display');
+  if (srvDisp) srvDisp.textContent = s.nextServer === 'Player A' ? cfg.playerName : cfg.opponentName;
+
   const over = document.getElementById('match-over-score');
   over.style.display = s.matchOver ? 'block' : 'none';
   if (s.matchOver) {
@@ -946,31 +910,12 @@ function openEditModal(idx) {
   const pt = points[idx];
   document.getElementById('modal-title').textContent = `Edit Point #${idx + 1}`;
 
-  setToggleVal('modal-server', pt.Server, true);
-  setToggleVal('modal-first-serve', pt['First Serve'], false);
-
-  if (pt['Second Serve']) {
-    document.getElementById('modal-row-second-serve').style.display = 'flex';
-    setToggleVal('modal-second-serve', pt['Second Serve'], false);
-  } else {
-    document.getElementById('modal-row-second-serve').style.display = 'none';
-    clearToggleGroup('modal-second-serve');
-  }
-
-  setToggleVal('modal-winner', pt.Winner, true);
   setToggleVal('modal-end-type', pt['End Type'], false);
 
-  // Update player name buttons
-  document.getElementById('modal-server-a').textContent = cfg.playerName;
-  document.getElementById('modal-server-b').textContent = cfg.opponentName;
-  document.getElementById('modal-winner-a').textContent = cfg.playerName;
-  document.getElementById('modal-winner-b').textContent = cfg.opponentName;
-
-  // Shot info (read-only)
   const shots = pt.shots || [];
   const n = shots.length;
   document.getElementById('modal-shot-info').textContent =
-    n > 0 ? `${n} shot${n !== 1 ? 's' : ''} tracked on court` : 'No shots tracked';
+    n > 0 ? `${n} shot${n !== 1 ? 's' : ''} tracked · server: ${pt.Server}` : 'No shots tracked';
 
   document.getElementById('edit-modal').classList.add('open');
 }
@@ -981,27 +926,19 @@ function closeEditModal() {
 }
 
 function saveEdit() {
-  const server   = getToggleVal('modal-server');
-  const firstSrv = getToggleVal('modal-first-serve');
-  const secondSrv = firstSrv === 'Out' ? getToggleVal('modal-second-serve') : null;
-  const winner   = getToggleVal('modal-winner');
-  const endType  = getToggleVal('modal-end-type');
+  const endType = getToggleVal('modal-end-type');
+  if (!endType) { alert('Please select End Type'); return; }
 
-  const missing = [];
-  if (!server)    missing.push('Server');
-  if (!firstSrv)  missing.push('1st Serve');
-  if (firstSrv === 'Out' && !secondSrv) missing.push('2nd Serve');
-  if (!winner)    missing.push('Winner');
-  if (!endType)   missing.push('End Type');
-
-  if (missing.length) { alert(`Please fill in: ${missing.join(', ')}`); return; }
-
-  const shots = points[editIndex].shots || [];
-  const lastShot = shots.length > 0 ? { F: 'Forehand', B: 'Backhand', V: 'Volley / Overhead', S: 'Serve' }[shots[shots.length - 1].type] : points[editIndex]['Last Shot'];
+  const shots  = points[editIndex].shots || [];
+  const server = points[editIndex].Server;
+  const { firstSrv, secondSrv } = inferServeStatus(shots, endType);
+  const winner  = inferWinner(shots, server, endType) || points[editIndex].Winner;
+  const lastShot = shots.length > 0
+    ? { F: 'Forehand', B: 'Backhand', V: 'Volley / Overhead', S: 'Serve' }[shots[shots.length - 1].type]
+    : points[editIndex]['Last Shot'];
 
   points[editIndex] = {
     ...points[editIndex],
-    Server:           server,
     'First Serve':    firstSrv,
     'Second Serve':   secondSrv,
     Winner:           winner,
@@ -1064,46 +1001,56 @@ function initToggleGroup(groupId, usePlayerColors, onChangeCb) {
 // ─────────────────────────────────────────────────────────────────
 
 function resetForm() {
-  setToggleVal('field-server', score.nextServer, true);
-  clearToggleGroup('field-first-serve');
-  document.getElementById('row-second-serve').style.display = 'none';
-  clearToggleGroup('field-second-serve');
-  clearToggleGroup('field-winner');
   clearToggleGroup('field-end-type');
   currentPointShots = [];
   renderShotDots();
   updateCourtBadge();
 }
 
+function inferWinner(shots, server, endType) {
+  if (!shots || shots.length === 0) return null;
+  const last = shots[shots.length - 1];
+  const returner = server === 'Player A' ? 'Player B' : 'Player A';
+  const hitter = last.seq % 2 === 1 ? server : returner;
+  return endType === 'Winner' ? hitter : (hitter === 'Player A' ? 'Player B' : 'Player A');
+}
+
+function inferServeStatus(shots, endType) {
+  if (!shots || shots.length === 0) return { firstSrv: null, secondSrv: null };
+  const firstOut = shots.length >= 2 && shots[1].type === 'S';
+  if (!firstOut) return { firstSrv: 'In', secondSrv: null };
+  // First serve out; double fault = only 2 shots and UE
+  const isDoubleFault = shots.length === 2 && endType === 'Unforced Error';
+  return { firstSrv: 'Out', secondSrv: isDoubleFault ? 'Out' : 'In' };
+}
+
 function logPoint() {
-  const server   = getToggleVal('field-server');
-  const firstSrv = getToggleVal('field-first-serve');
-  const secondSrv = firstSrv === 'Out' ? getToggleVal('field-second-serve') : null;
-  const winner   = getToggleVal('field-winner');
-  const endType  = getToggleVal('field-end-type');
+  const server  = score.nextServer;
+  const endType = getToggleVal('field-end-type');
+  const shots   = [...currentPointShots];
 
   const missing = [];
-  if (!server)    missing.push('Server');
-  if (!firstSrv)  missing.push('1st Serve');
-  if (firstSrv === 'Out' && !secondSrv) missing.push('2nd Serve');
-  if (!winner)    missing.push('Winner');
-  if (!endType)   missing.push('End Type');
+  if (!endType)          missing.push('End Type');
+  if (shots.length === 0) missing.push('at least one shot on court tracker');
   if (missing.length) { alert(`Please fill in: ${missing.join(', ')}`); return; }
 
-  const shots   = [...currentPointShots];
-  const lastShot = shots.length > 0 ? { F: 'Forehand', B: 'Backhand', V: 'Volley / Overhead', S: 'Serve' }[shots[shots.length - 1].type] : null;
+  const { firstSrv, secondSrv } = inferServeStatus(shots, endType);
+  const winner  = inferWinner(shots, server, endType);
+  if (!winner) { alert('Could not infer winner — please track shots.'); return; }
+
+  const lastShot = { F: 'Forehand', B: 'Backhand', V: 'Volley / Overhead', S: 'Serve' }[shots[shots.length - 1].type];
   const netApp   = inferNetApproach(shots, server);
 
   points.push({
-    Timestamp:        new Date().toISOString(),
-    Server:           server,
-    'First Serve':    firstSrv,
-    'Second Serve':   secondSrv,
-    Winner:           winner,
-    'Number of Shots': shots.length || null,
-    'End Type':       endType,
-    'Last Shot':      lastShot,
-    'Net Approach':   netApp,
+    Timestamp:         new Date().toISOString(),
+    Server:            server,
+    'First Serve':     firstSrv,
+    'Second Serve':    secondSrv,
+    Winner:            winner,
+    'Number of Shots': shots.length,
+    'End Type':        endType,
+    'Last Shot':       lastShot,
+    'Net Approach':    netApp,
     shots,
   });
 
@@ -1236,16 +1183,28 @@ function showPage(id) {
   document.getElementById(id).classList.add('active');
 }
 
+function updateCourtLabels() {
+  const topLabel    = courtFlipped ? cfg.playerName    : cfg.opponentName;
+  const bottomLabel = courtFlipped ? cfg.opponentName  : cfg.playerName;
+  const el1 = document.getElementById('court-label-top');
+  const el2 = document.getElementById('court-label-bottom');
+  const el3 = document.getElementById('heatmap-label-top');
+  const el4 = document.getElementById('heatmap-label-bottom');
+  if (el1) el1.textContent = topLabel;
+  if (el2) el2.textContent = bottomLabel;
+  if (el3) el3.textContent = topLabel;
+  if (el4) el4.textContent = bottomLabel;
+}
+
 function updatePlayerLabels() {
   document.getElementById('logger-title').textContent =
     `${cfg.playerName} vs ${cfg.opponentName}`;
   const pairs = [
-    ['tog-server-a',  cfg.playerName],  ['tog-server-b',  cfg.opponentName],
-    ['tog-winner-a',  cfg.playerName],  ['tog-winner-b',  cfg.opponentName],
     ['first-srv-a',   cfg.playerName],  ['first-srv-b',   cfg.opponentName],
     ['score-name-a',  cfg.playerName],  ['score-name-b',  cfg.opponentName],
   ];
   pairs.forEach(([id, name]) => { const el = document.getElementById(id); if(el) el.textContent = name; });
+  updateCourtLabels();
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -1257,41 +1216,21 @@ initToggleGroup('cfg-first-server', false);
 initToggleGroup('field-match-result', false);
 
 // Point form toggles
-initToggleGroup('field-server', true);
-initToggleGroup('field-winner', true);
 initToggleGroup('field-end-type', false);
-initToggleGroup('field-first-serve', false, val => {
-  document.getElementById('row-second-serve').style.display = val === 'Out' ? 'flex' : 'none';
-  if (val === 'In') clearToggleGroup('field-second-serve');
-});
-initToggleGroup('field-second-serve', false, val => {
-  if (val === 'Out') {
-    // Double fault auto-fill
-    const srv = getToggleVal('field-server');
-    setToggleVal('field-winner', srv === 'Player A' ? 'Player B' : 'Player A', true);
-    setToggleVal('field-end-type', 'Unforced Error', false);
-    // Add a serve shot at center court if no shots yet
-    if (currentPointShots.length === 0) {
-      currentPointShots.push({ nx: 0.5, ny: 1.0, type: 'S', spin: 'flat', seq: 1 });
-      renderShotDots(); updateCourtBadge();
-    }
-  }
-});
 
 // Modal toggles
-initToggleGroup('modal-server', true);
-initToggleGroup('modal-winner', true);
 initToggleGroup('modal-end-type', false);
-initToggleGroup('modal-first-serve', false, val => {
-  document.getElementById('modal-row-second-serve').style.display = val === 'Out' ? 'flex' : 'none';
-  if (val === 'In') clearToggleGroup('modal-second-serve');
-});
-initToggleGroup('modal-second-serve', false);
 
 // Logger buttons
 document.getElementById('btn-log').addEventListener('click', logPoint);
 document.getElementById('btn-undo').addEventListener('click', undoLast);
 document.getElementById('btn-end').addEventListener('click', showExportPage);
+document.getElementById('btn-flip-court').addEventListener('click', () => {
+  courtFlipped = !courtFlipped;
+  updateCourtLabels();
+  renderShotDots();
+  updateNumpadGrid();
+});
 
 // Modal buttons
 document.getElementById('modal-close').addEventListener('click', closeEditModal);
@@ -1357,8 +1296,54 @@ document.addEventListener('keydown', e => {
     if (k === 'N') { e.preventDefault(); selectShotSpin('none'); return; }
     if (e.key === 'Escape') { cancelShot(); return; }
   }
-  if (e.key === 'Enter' && !document.getElementById('edit-modal').classList.contains('open')
-      && document.getElementById('page-logger').classList.contains('active')) {
+  const onLogger  = document.getElementById('page-logger').classList.contains('active');
+  const modalOpen = document.getElementById('edit-modal').classList.contains('open');
+  const popupOpen = popup && popup.style.display === 'block';
+
+  if (courtOpen && onLogger && !modalOpen && !popupOpen) {
+    const k = e.key.toUpperCase();
+
+    // Numpad zone keys
+    const NUMPAD_CODE_MAP = {
+      'Numpad0':'0','Numpad1':'1','Numpad2':'2','Numpad3':'3','Numpad4':'4',
+      'Numpad5':'5','Numpad6':'6','Numpad7':'7','Numpad8':'8','Numpad9':'9',
+    };
+    if (NUMPAD_CODE_MAP[e.code] !== undefined) {
+      e.preventDefault();
+      handleNumpadZone(NUMPAD_CODE_MAP[e.code]);
+      return;
+    }
+
+    // Serve-specific keys (checked first so B=Body isn't captured as Backhand)
+    if (pendingType === 'S' && pendingNx === null) {
+      if (k === 'D' || k === 'A') {
+        e.preventDefault();
+        serveSide = k;
+        setPreType('S'); // refresh indicator
+        return;
+      }
+      if (['W','B','T'].includes(k)) {
+        e.preventDefault();
+        handleServeZone(k);
+        return;
+      }
+    }
+
+    // Type pre-selection: F / B / V / S
+    if (['F','B','V','S'].includes(k)) {
+      e.preventDefault();
+      setPreType(k);
+      return;
+    }
+
+    // Escape cancels pre-type (when no position set yet)
+    if (e.key === 'Escape' && pendingType !== null && pendingNx === null) {
+      clearPreType();
+      return;
+    }
+  }
+
+  if (e.key === 'Enter' && !modalOpen && onLogger) {
     e.preventDefault();
     logPoint();
   }
@@ -1412,31 +1397,31 @@ async function uploadToSupabase() {
   document.getElementById('upload-status').style.display = 'none';
 
   const body = {
-    player_name:      cfg.playerName,
-    player_utr:       cfg.playerUtr,
-    player_gender:    cfg.playerGender,
-    opponent_name:    cfg.opponentName,
-    opponent_utr:     cfg.opponentUtr,
-    match_date:       cfg.matchDate || null,
-    org_name:         cfg.orgName || null,
-    ad_format:        cfg.adFormat,
-    match_result:     result,
-    set1_player:      getSetVal('set1-p'),
-    set1_opponent:    getSetVal('set1-o'),
-    set1_tb_player:   getSetVal('set1-tbp'),
-    set1_tb_opponent: getSetVal('set1-tbo'),
-    set2_player:      getSetVal('set2-p'),
-    set2_opponent:    getSetVal('set2-o'),
-    set2_tb_player:   getSetVal('set2-tbp'),
-    set2_tb_opponent: getSetVal('set2-tbo'),
-    set3_player:      getSetVal('set3-p'),
-    set3_opponent:    getSetVal('set3-o'),
-    total_points:     points.length,
-    points:           points,
+    player_name:            cfg.playerName,
+    player_utr:             cfg.playerUtr,
+    player_gender:          cfg.playerGender,
+    opponent_name:          cfg.opponentName,
+    opponent_utr:           cfg.opponentUtr,
+    match_date:             cfg.matchDate || null,
+    org_name:               cfg.orgName || null,
+    ad_format:              cfg.adFormat,
+    match_tiebreak:         cfg.matchTiebreak,
+    match_result:           result,
+    set1_player:            getSetVal('set1-p'),
+    set1_opponent:          getSetVal('set1-o'),
+    set1_tiebreak_player:   getSetVal('set1-tbp'),
+    set1_tiebreak_opponent: getSetVal('set1-tbo'),
+    set2_player:            getSetVal('set2-p'),
+    set2_opponent:          getSetVal('set2-o'),
+    set2_tiebreak_player:   getSetVal('set2-tbp'),
+    set2_tiebreak_opponent: getSetVal('set2-tbo'),
+    set3_player:            getSetVal('set3-p'),
+    set3_opponent:          getSetVal('set3-o'),
+    match_log:              points,
   };
 
   try {
-    const resp = await fetch(`${SUPABASE_URL}/rest/v1/match_submissions`, {
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/match_jobs`, {
       method: 'POST',
       headers: {
         'apikey': SUPABASE_KEY,
@@ -1448,7 +1433,7 @@ async function uploadToSupabase() {
     });
 
     if (resp.ok) {
-      setUploadStatus('Match uploaded successfully!', true);
+      setUploadStatus('✓ Uploaded! Report will be generated shortly.', true);
       btn.textContent = '✓ Uploaded';
     } else {
       const errText = await resp.text();
@@ -1478,7 +1463,172 @@ const COURT_W = 220, COURT_H = 440;
 let currentPointShots = [];
 let pendingNx = null, pendingNy = null;
 let pendingType = null, pendingSpin = null;
+let pendingNet = false;
 let courtOpen = false;
+let courtFlipped = false;
+let courtZonesVisible = false;
+
+// Rally zones auto-alternate each shot: even shots → Player B's half, odd → Player A's half.
+// 7/8/9 = visually higher on screen (top of active half), 1/2/3 = lower.
+// activeAtTop accounts for court flip so the screen-position rule is always correct.
+
+// Returns the effective shot index for parity, collapsing fault serves (consecutive S shots
+// at the start of a point) so that a 2nd serve doesn't flip which side is active.
+function getEffectiveShotIndex() {
+  let serves = 0;
+  for (const s of currentPointShots) { if (s.type === 'S') serves++; else break; }
+  return currentPointShots.length - Math.max(0, serves - 1);
+}
+
+function getNumpadZones() {
+  const server = getServingPlayer();
+  const eff = getEffectiveShotIndex();
+  const onBSide = server === 'A'
+    ? eff % 2 === 0
+    : eff % 2 !== 0;
+  const L = 0.18, C = 0.50, R = 0.82;
+  // activeAtTop = true when the active half is in the upper portion of the screen
+  const activeAtTop = (onBSide !== courtFlipped);
+  const [t, m, b] = activeAtTop ? [0.12, 0.34, 0.45] : [0.55, 0.66, 0.88];
+  return {
+    '7': [L, t], '8': [C, t], '9': [R, t],
+    '4': [L, m], '5': [C, m], '6': [R, m],
+    '1': [L, b], '2': [C, b], '3': [R, b],
+    '0': [C, 0.50],
+  };
+}
+
+// Serve zones by court side — W=wide, B=body, T=T-serve
+// A serving → lands in B's service box (ny≈0.37)
+// B serving → lands in A's service box (ny≈0.63), W/T directions mirror
+let serveSide = 'D'; // 'D' = deuce, 'A' = ad
+const SERVE_ZONES_A = {
+  'D': { 'W': [0.15, 0.37], 'B': [0.32, 0.37], 'T': [0.48, 0.37] },
+  'A': { 'W': [0.85, 0.37], 'B': [0.68, 0.37], 'T': [0.52, 0.37] },
+};
+const SERVE_ZONES_B = {
+  'D': { 'W': [0.85, 0.63], 'B': [0.68, 0.63], 'T': [0.52, 0.63] },
+  'A': { 'W': [0.15, 0.63], 'B': [0.32, 0.63], 'T': [0.48, 0.63] },
+};
+
+function getServingPlayer() {
+  return score.nextServer === 'Player A' ? 'A' : 'B';
+}
+
+const PRE_TYPE_COLOR = { F: '#2a5298', B: '#e87722', V: '#2d8a4e', S: '#7c3aed' };
+
+function getPreTypeHint(type) {
+  if (type === 'S') {
+    const side = serveSide === 'D' ? 'Deuce' : 'Ad';
+    return `S  ·  ${side}  ·  W / B / T   (D or A to switch)`;
+  }
+  const server = getServingPlayer();
+  const eff2 = getEffectiveShotIndex();
+  const onBSide2 = server === 'A' ? eff2 % 2 === 0 : eff2 % 2 !== 0;
+  const side = onBSide2 ? "B's side" : "A's side";
+  return `${type}  ·  ${side}  ·  numpad 1–9`;
+}
+
+function setPreType(type) {
+  pendingType = type;
+  const el = document.getElementById('pending-type-status');
+  if (el) {
+    el.textContent = getPreTypeHint(type);
+    el.style.color = PRE_TYPE_COLOR[type];
+    el.style.display = 'block';
+  }
+}
+
+function clearPreType() {
+  pendingType = null;
+  const el = document.getElementById('pending-type-status');
+  if (el) el.style.display = 'none';
+}
+
+function handleServeZone(key) {
+  const serveZones = getServingPlayer() === 'A' ? SERVE_ZONES_A : SERVE_ZONES_B;
+  const zone = serveZones[serveSide][key];
+  if (!zone) return;
+  const [nx, ny] = zone;
+  // ny is logical (physical court position), no flip needed
+  // nx mirrors when court is flipped (left/right swap with 180° rotation)
+  pendingNx  = courtFlipped ? 1 - nx : nx;
+  pendingNy  = ny;
+  pendingNet = false;
+  confirmShot();
+}
+
+function updateNumpadGrid() {
+  const grid = document.getElementById('numpad-grid');
+  if (!grid || !courtZonesVisible) return;
+  const zones = getNumpadZones();
+  const rows = [['7','8','9'], ['4','5','6'], ['1','2','3']];
+  // Horizontal dividers between rows
+  const nys = rows.map(r => zones[r[0]][1]);
+  const h1 = ((nys[0] + nys[1]) / 2 * COURT_H).toFixed(1);
+  const h2 = ((nys[1] + nys[2]) / 2 * COURT_H).toFixed(1);
+  const server2 = getServingPlayer();
+  const eff3 = getEffectiveShotIndex();
+  const onBSide = server2 === 'A' ? eff3 % 2 === 0 : eff3 % 2 !== 0;
+  const sideLabel = onBSide ? "B's half" : "A's half";
+  grid.innerHTML =
+    `<line x1="0" y1="${h1}" x2="220" y2="${h1}" stroke="#1e3a5f" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.4"/>` +
+    `<line x1="0" y1="${h2}" x2="220" y2="${h2}" stroke="#1e3a5f" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.4"/>` +
+    `<line x1="73" y1="0" x2="73" y2="440" stroke="#1e3a5f" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.4"/>` +
+    `<line x1="147" y1="0" x2="147" y2="440" stroke="#1e3a5f" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.4"/>` +
+    rows.flat().map(k => {
+      const [nx, ny] = zones[k];
+      const x = (nx * COURT_W).toFixed(1), y = (ny * COURT_H + 5).toFixed(1);
+      return `<text x="${x}" y="${y}" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">${k}</text>`;
+    }).join('') +
+    `<text x="110" y="215" text-anchor="middle" font-size="8" font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">0=net</text>` +
+    `<text x="110" y="${onBSide ? 430 : 15}" text-anchor="middle" font-size="8" fill="#1e3a5f" opacity="0.4" font-family="sans-serif">${sideLabel}</text>`;
+}
+
+function toggleZoneGrid() {
+  courtZonesVisible = !courtZonesVisible;
+  const grid = document.getElementById('numpad-grid');
+  grid.style.display = courtZonesVisible ? '' : 'none';
+  if (courtZonesVisible) updateNumpadGrid();
+  const btn = document.getElementById('btn-zones');
+  if (btn) { btn.textContent = courtZonesVisible ? 'Hide Zones' : 'Zones'; btn.style.borderColor = courtZonesVisible ? 'var(--blue)' : ''; btn.style.color = courtZonesVisible ? 'var(--blue)' : ''; }
+}
+
+function handleNumpadZone(key) {
+  const zone = getNumpadZones()[key];
+  if (!zone) return;
+  const [visual_nx, visual_ny] = zone;
+  pendingNx  = visual_nx;
+  pendingNy  = courtFlipped ? 1 - visual_ny : visual_ny;
+  pendingNet = (key === '0');
+
+  if (pendingType !== null) {
+    // Type already pre-selected — confirm directly, no popup
+    confirmShot();
+    return;
+  }
+
+  // No pre-type — open popup so user can pick type (mouse fallback)
+  pendingSpin = null;
+  ['F','B','V','S'].forEach(t => document.getElementById('shot-type-' + t).className = 'shot-type-btn');
+  ['topspin','slice','flat','none'].forEach(s => document.getElementById('shot-spin-' + s).className = 'shot-spin-btn');
+  const svg     = document.getElementById('court-svg');
+  const svgRect = svg.getBoundingClientRect();
+  const vb      = svg.viewBox.baseVal;
+  const clientX = svgRect.left + (visual_nx * COURT_W - vb.x) * (svgRect.width  / vb.width);
+  const clientY = svgRect.top  + (visual_ny * COURT_H - vb.y) * (svgRect.height / vb.height);
+  const wrapper = document.querySelector('.court-wrapper');
+  const wRect   = wrapper.getBoundingClientRect();
+  let left = clientX - wRect.left + 8;
+  let top  = clientY - wRect.top  - 55;
+  if (left + 168 > wRect.width)  left = clientX - wRect.left - 176;
+  if (top < 0)                   top  = clientY - wRect.top  + 10;
+  const popup = document.getElementById('shot-popup');
+  popup.style.left = Math.max(0, left) + 'px';
+  popup.style.top  = Math.max(0, top)  + 'px';
+  popup.style.display = 'block';
+  renderShotDots();
+}
 
 function toggleCourt() {
   courtOpen = !courtOpen;
@@ -1501,9 +1651,17 @@ function svgFromNorm(nx, ny) { return { sx: nx * COURT_W, sy: ny * COURT_H }; }
 function handleCourtClick(e) {
   e.stopPropagation();
   const { sx, sy } = svgPoint(e);
-  pendingNx = sx / COURT_W;
-  pendingNy = sy / COURT_H;
-  pendingType = null;
+  pendingNx  = sx / COURT_W;
+  pendingNy  = courtFlipped ? 1 - (sy / COURT_H) : sy / COURT_H;
+  pendingNet = false;
+
+  if (pendingType !== null) {
+    // Type already pre-selected — confirm directly, no popup
+    confirmShot();
+    return;
+  }
+
+  // No pre-type — open popup
   pendingSpin = null;
   ['F','B','V','S'].forEach(t => document.getElementById('shot-type-' + t).className = 'shot-type-btn');
   ['topspin','slice','flat','none'].forEach(s => document.getElementById('shot-spin-' + s).className = 'shot-spin-btn');
@@ -1522,9 +1680,12 @@ function handleCourtClick(e) {
 
 function cancelShot() {
   pendingNx = null; pendingNy = null;
-  pendingType = null; pendingSpin = null;
+  pendingSpin = null;
+  pendingNet = false;
+  clearPreType();
   document.getElementById('shot-popup').style.display = 'none';
   renderShotDots();
+  updateNumpadGrid();
 }
 
 function selectShotType(type) {
@@ -1532,7 +1693,7 @@ function selectShotType(type) {
   ['F','B','V','S'].forEach(t =>
     document.getElementById('shot-type-' + t).className = 'shot-type-btn' + (t === type ? ' sel-' + t : '')
   );
-  if (pendingSpin !== null) confirmShot();
+  confirmShot();
 }
 
 function selectShotSpin(spin) {
@@ -1546,18 +1707,24 @@ function selectShotSpin(spin) {
 function confirmShot() {
   if (pendingNx === null || !pendingType) return;
   const spin = pendingSpin !== null ? pendingSpin : DEFAULT_SPIN[pendingType];
-  currentPointShots.push({ nx: pendingNx, ny: pendingNy, type: pendingType, spin, seq: currentPointShots.length + 1 });
+  const shot = { nx: pendingNx, ny: pendingNy, type: pendingType, spin, seq: currentPointShots.length + 1 };
+  if (pendingNet) shot.net = true;
+  currentPointShots.push(shot);
   pendingNx = null; pendingNy = null;
-  pendingType = null; pendingSpin = null;
+  pendingSpin = null;
+  pendingNet = false;
+  clearPreType();
   document.getElementById('shot-popup').style.display = 'none';
   renderShotDots();
   updateCourtBadge();
+  updateNumpadGrid();
 }
 
 function clearShots() {
   currentPointShots = [];
   cancelShot();
   updateCourtBadge();
+  updateNumpadGrid();
 }
 
 function updateCourtBadge() {
@@ -1571,13 +1738,15 @@ function renderShotDots() {
   if (!g) return;
   let html = '';
   currentPointShots.forEach(s => {
-    const { sx, sy } = svgFromNorm(s.nx, s.ny);
+    const displayNy = courtFlipped ? 1 - s.ny : s.ny;
+    const { sx, sy } = svgFromNorm(s.nx, displayNy);
     const c = SHOT_COLORS[s.type] || '#888';
     html += `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="8" fill="${c}" opacity="0.88" stroke="white" stroke-width="1.5"/>` +
             `<text x="${sx.toFixed(1)}" y="${(sy + 3.5).toFixed(1)}" text-anchor="middle" font-size="8.5" font-weight="bold" fill="white" font-family="sans-serif" pointer-events="none">${s.type}</text>`;
   });
   if (pendingNx !== null) {
-    const { sx, sy } = svgFromNorm(pendingNx, pendingNy);
+    const displayNy = courtFlipped ? 1 - pendingNy : pendingNy;
+    const { sx, sy } = svgFromNorm(pendingNx, displayNy);
     html += `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="8" fill="#888" opacity="0.35" stroke="white" stroke-width="1.5"/>`;
   }
   g.innerHTML = html;
@@ -1596,6 +1765,7 @@ function inferNetApproach(shots, server) {
   document.getElementById('court-tracker-hdr').addEventListener('click', toggleCourt);
   document.getElementById('court-svg').addEventListener('click', handleCourtClick);
   document.getElementById('popup-cancel').addEventListener('click', e => { e.stopPropagation(); cancelShot(); });
+  document.getElementById('btn-zones').addEventListener('click', e => { e.stopPropagation(); toggleZoneGrid(); });
   document.getElementById('btn-clear-shots').addEventListener('click', clearShots);
   ['F','B','V','S'].forEach(t =>
     document.getElementById('shot-type-' + t).addEventListener('click', e => { e.stopPropagation(); selectShotType(t); })
