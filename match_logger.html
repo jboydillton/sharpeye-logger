@@ -417,10 +417,7 @@
     <div class="point-form-panel">
       <div class="form-row">
         <div class="field-label">Server</div>
-        <div class="toggle-group" id="field-server">
-          <button class="toggle" data-value="Player A" id="tog-server-a">Player A</button>
-          <button class="toggle" data-value="Player B" id="tog-server-b">Player B</button>
-        </div>
+        <div id="server-display" style="font-size:13px;font-weight:600;color:var(--text);padding:6px 0;">—</div>
       </div>
       <div class="form-row">
         <div class="field-label">1st Serve</div>
@@ -880,6 +877,9 @@ function renderScore() {
   document.getElementById('pts-logged').textContent =
     `${points.length} point${points.length !== 1 ? 's' : ''} logged`;
 
+  const srvDisp = document.getElementById('server-display');
+  if (srvDisp) srvDisp.textContent = s.nextServer === 'Player A' ? cfg.playerName : cfg.opponentName;
+
   const over = document.getElementById('match-over-score');
   over.style.display = s.matchOver ? 'block' : 'none';
   if (s.matchOver) {
@@ -1077,7 +1077,6 @@ function initToggleGroup(groupId, usePlayerColors, onChangeCb) {
 // ─────────────────────────────────────────────────────────────────
 
 function resetForm() {
-  setToggleVal('field-server', score.nextServer, true);
   clearToggleGroup('field-first-serve');
   document.getElementById('row-second-serve').style.display = 'none';
   clearToggleGroup('field-second-serve');
@@ -1089,14 +1088,13 @@ function resetForm() {
 }
 
 function logPoint() {
-  const server   = getToggleVal('field-server');
+  const server   = score.nextServer;
   const firstSrv = getToggleVal('field-first-serve');
   const secondSrv = firstSrv === 'Out' ? getToggleVal('field-second-serve') : null;
   const winner   = getToggleVal('field-winner');
   const endType  = getToggleVal('field-end-type');
 
   const missing = [];
-  if (!server)    missing.push('Server');
   if (!firstSrv)  missing.push('1st Serve');
   if (firstSrv === 'Out' && !secondSrv) missing.push('2nd Serve');
   if (!winner)    missing.push('Winner');
@@ -1266,7 +1264,6 @@ function updatePlayerLabels() {
   document.getElementById('logger-title').textContent =
     `${cfg.playerName} vs ${cfg.opponentName}`;
   const pairs = [
-    ['tog-server-a',  cfg.playerName],  ['tog-server-b',  cfg.opponentName],
     ['tog-winner-a',  cfg.playerName],  ['tog-winner-b',  cfg.opponentName],
     ['first-srv-a',   cfg.playerName],  ['first-srv-b',   cfg.opponentName],
     ['score-name-a',  cfg.playerName],  ['score-name-b',  cfg.opponentName],
@@ -1284,7 +1281,6 @@ initToggleGroup('cfg-first-server', false);
 initToggleGroup('field-match-result', false);
 
 // Point form toggles
-initToggleGroup('field-server', true);
 initToggleGroup('field-winner', true);
 initToggleGroup('field-end-type', false);
 initToggleGroup('field-first-serve', false, val => {
@@ -1294,7 +1290,7 @@ initToggleGroup('field-first-serve', false, val => {
 initToggleGroup('field-second-serve', false, val => {
   if (val === 'Out') {
     // Double fault auto-fill
-    const srv = getToggleVal('field-server');
+    const srv = score.nextServer;
     setToggleVal('field-winner', srv === 'Player A' ? 'Player B' : 'Player A', true);
     setToggleVal('field-end-type', 'Unforced Error', false);
     // Add a serve shot at center court if no shots yet
@@ -1596,8 +1592,7 @@ const SERVE_ZONES_B = {
 };
 
 function getServingPlayer() {
-  const val = getToggleVal('field-server');
-  return (!val || val === 'Player A' || val === cfg.playerName) ? 'A' : 'B';
+  return score.nextServer === 'Player A' ? 'A' : 'B';
 }
 
 const PRE_TYPE_COLOR = { F: '#2a5298', B: '#e87722', V: '#2d8a4e', S: '#7c3aed' };
