@@ -1502,7 +1502,11 @@ function getNumpadZones() {
   const L = 0.18, C = 0.50, R = 0.82;
   // activeAtTop = true when the active half is in the upper portion of the screen
   const activeAtTop = (onBSide !== courtFlipped);
-  const [t, m, b] = activeAtTop ? [0.12, 0.34, 0.45] : [0.55, 0.66, 0.88];
+  // Zone centers derived from court lines (service lines at ny=0.23/0.77, net at 0.50):
+  //   Short  (1/2/3): net → mid-service-box
+  //   Medium (4/5/6): mid-service-box → mid-backcourt (transition/no-man's-land)
+  //   Deep   (7/8/9): mid-backcourt → baseline
+  const [t, m, b] = activeAtTop ? [0.06, 0.24, 0.43] : [0.57, 0.76, 0.94];
   return {
     '7': [L, t], '8': [C, t], '9': [R, t],
     '4': [L, m], '5': [C, m], '6': [R, m],
