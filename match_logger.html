@@ -464,7 +464,7 @@
             <div class="shot-legend-item"><span class="legend-dot" style="background:#2d8a4e"></span>V Volley/OH</div>
             <div class="shot-legend-item"><span class="legend-dot" style="background:#7c3aed"></span>S Serve</div>
           </div>
-          <div class="court-hint">Click court to place shot · Popup open: <kbd>F</kbd><kbd>B</kbd><kbd>V</kbd><kbd>S</kbd> = type · <kbd>T</kbd><kbd>C</kbd><kbd>P</kbd><kbd>N</kbd> = Topspin/sliCe/flat/none · <kbd>Esc</kbd> = cancel</div>
+          <div class="court-hint">Click court <em>or</em> <strong>Numpad 1–9</strong> to place shot · <strong>0</strong> = net · Popup open: <kbd>F</kbd><kbd>B</kbd><kbd>V</kbd><kbd>S</kbd> = type · <kbd>T</kbd><kbd>C</kbd><kbd>P</kbd><kbd>N</kbd> = Topspin/sliCe/flat/none · <kbd>Esc</kbd> = cancel</div>
           <div class="court-wrapper">
             <svg id="court-svg" viewBox="-15 -15 250 470" width="220" height="430">
               <rect x="0" y="0" width="220" height="440" fill="#afd8f7"/>
@@ -484,6 +484,23 @@
               <circle cx="220" cy="220" r="4" fill="#1e3a5f" opacity="0.85"/>
               <text id="court-label-top" x="110" y="-4" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">Player B</text>
               <text id="court-label-bottom" x="110" y="456" text-anchor="middle" font-size="9" fill="#555" font-family="sans-serif">Player A</text>
+              <!-- Numpad zone grid (toggled via Zones button) -->
+              <g id="numpad-grid" style="display:none;">
+                <line x1="0" y1="99"  x2="220" y2="99"  stroke="#1e3a5f" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.4"/>
+                <line x1="0" y1="236" x2="220" y2="236" stroke="#1e3a5f" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.4"/>
+                <line x1="73"  y1="0" x2="73"  y2="440" stroke="#1e3a5f" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.4"/>
+                <line x1="147" y1="0" x2="147" y2="440" stroke="#1e3a5f" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.4"/>
+                <text x="36"  y="52"  text-anchor="middle" font-size="15" font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">7</text>
+                <text x="110" y="52"  text-anchor="middle" font-size="15" font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">8</text>
+                <text x="184" y="52"  text-anchor="middle" font-size="15" font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">9</text>
+                <text x="36"  y="172" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">4</text>
+                <text x="110" y="172" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">5</text>
+                <text x="184" y="172" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">6</text>
+                <text x="36"  y="334" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">1</text>
+                <text x="110" y="334" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">2</text>
+                <text x="184" y="334" text-anchor="middle" font-size="15" font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">3</text>
+                <text x="110" y="215" text-anchor="middle" font-size="8"  font-weight="bold" fill="#1e3a5f" opacity="0.5" font-family="monospace">0=net</text>
+              </g>
               <g id="shot-dots-group"></g>
             </svg>
             <div class="shot-popup" id="shot-popup" style="display:none;">
@@ -506,7 +523,10 @@
           </div>
           <div class="court-footer">
             <span class="court-shot-count" id="court-shot-count">Click court to track shots</span>
-            <button class="btn-clear-shots" id="btn-clear-shots">Clear</button>
+            <div style="display:flex;gap:6px;">
+              <button class="btn-clear-shots" id="btn-zones">Zones</button>
+              <button class="btn-clear-shots" id="btn-clear-shots">Clear</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1372,6 +1392,21 @@ document.addEventListener('keydown', e => {
     if (k === 'N') { e.preventDefault(); selectShotSpin('none'); return; }
     if (e.key === 'Escape') { cancelShot(); return; }
   }
+  // Numpad zone shortcuts (only when court is open, popup is not, logger is active)
+  const NUMPAD_CODE_MAP = {
+    'Numpad0':'0','Numpad1':'1','Numpad2':'2','Numpad3':'3','Numpad4':'4',
+    'Numpad5':'5','Numpad6':'6','Numpad7':'7','Numpad8':'8','Numpad9':'9',
+  };
+  if (NUMPAD_CODE_MAP[e.code] !== undefined
+      && courtOpen
+      && document.getElementById('page-logger').classList.contains('active')
+      && !document.getElementById('edit-modal').classList.contains('open')
+      && (!popup || popup.style.display !== 'block')) {
+    e.preventDefault();
+    handleNumpadZone(NUMPAD_CODE_MAP[e.code]);
+    return;
+  }
+
   if (e.key === 'Enter' && !document.getElementById('edit-modal').classList.contains('open')
       && document.getElementById('page-logger').classList.contains('active')) {
     e.preventDefault();
@@ -1493,8 +1528,55 @@ const COURT_W = 220, COURT_H = 440;
 let currentPointShots = [];
 let pendingNx = null, pendingNy = null;
 let pendingType = null, pendingSpin = null;
+let pendingNet = false;
 let courtOpen = false;
 let courtFlipped = false;
+let courtZonesVisible = false;
+
+// Numpad zone map: key → [visual_nx, visual_ny] (pre-flip, 0=top/left 1=bottom/right)
+const NUMPAD_ZONES = {
+  '7': [0.18, 0.10], '8': [0.50, 0.10], '9': [0.82, 0.10],
+  '4': [0.18, 0.35], '5': [0.50, 0.35], '6': [0.82, 0.35],
+  '1': [0.18, 0.72], '2': [0.50, 0.72], '3': [0.82, 0.72],
+  '0': [0.50, 0.50],
+};
+
+function toggleZoneGrid() {
+  courtZonesVisible = !courtZonesVisible;
+  document.getElementById('numpad-grid').style.display = courtZonesVisible ? '' : 'none';
+  const btn = document.getElementById('btn-zones');
+  if (btn) { btn.textContent = courtZonesVisible ? 'Hide Zones' : 'Zones'; btn.style.borderColor = courtZonesVisible ? 'var(--blue)' : ''; btn.style.color = courtZonesVisible ? 'var(--blue)' : ''; }
+}
+
+function handleNumpadZone(key) {
+  const zone = NUMPAD_ZONES[key];
+  if (!zone) return;
+  const [visual_nx, visual_ny] = zone;
+  pendingNx   = visual_nx;
+  pendingNy   = courtFlipped ? 1 - visual_ny : visual_ny;
+  pendingNet  = (key === '0');
+  pendingType = null;
+  pendingSpin = null;
+  ['F','B','V','S'].forEach(t => document.getElementById('shot-type-' + t).className = 'shot-type-btn');
+  ['topspin','slice','flat','none'].forEach(s => document.getElementById('shot-spin-' + s).className = 'shot-spin-btn');
+  // Position popup at the visual zone location on the SVG
+  const svg     = document.getElementById('court-svg');
+  const svgRect = svg.getBoundingClientRect();
+  const vb      = svg.viewBox.baseVal;
+  const clientX = svgRect.left + (visual_nx * COURT_W - vb.x) * (svgRect.width  / vb.width);
+  const clientY = svgRect.top  + (visual_ny * COURT_H - vb.y) * (svgRect.height / vb.height);
+  const wrapper = document.querySelector('.court-wrapper');
+  const wRect   = wrapper.getBoundingClientRect();
+  let left = clientX - wRect.left + 8;
+  let top  = clientY - wRect.top  - 55;
+  if (left + 168 > wRect.width)  left = clientX - wRect.left - 176;
+  if (top < 0)                   top  = clientY - wRect.top  + 10;
+  const popup = document.getElementById('shot-popup');
+  popup.style.left = Math.max(0, left) + 'px';
+  popup.style.top  = Math.max(0, top)  + 'px';
+  popup.style.display = 'block';
+  renderShotDots();
+}
 
 function toggleCourt() {
   courtOpen = !courtOpen;
@@ -1539,6 +1621,7 @@ function handleCourtClick(e) {
 function cancelShot() {
   pendingNx = null; pendingNy = null;
   pendingType = null; pendingSpin = null;
+  pendingNet = false;
   document.getElementById('shot-popup').style.display = 'none';
   renderShotDots();
 }
@@ -1562,9 +1645,12 @@ function selectShotSpin(spin) {
 function confirmShot() {
   if (pendingNx === null || !pendingType) return;
   const spin = pendingSpin !== null ? pendingSpin : DEFAULT_SPIN[pendingType];
-  currentPointShots.push({ nx: pendingNx, ny: pendingNy, type: pendingType, spin, seq: currentPointShots.length + 1 });
+  const shot = { nx: pendingNx, ny: pendingNy, type: pendingType, spin, seq: currentPointShots.length + 1 };
+  if (pendingNet) shot.net = true;
+  currentPointShots.push(shot);
   pendingNx = null; pendingNy = null;
   pendingType = null; pendingSpin = null;
+  pendingNet = false;
   document.getElementById('shot-popup').style.display = 'none';
   renderShotDots();
   updateCourtBadge();
@@ -1620,6 +1706,7 @@ function inferNetApproach(shots, server) {
   });
   document.getElementById('court-svg').addEventListener('click', handleCourtClick);
   document.getElementById('popup-cancel').addEventListener('click', e => { e.stopPropagation(); cancelShot(); });
+  document.getElementById('btn-zones').addEventListener('click', e => { e.stopPropagation(); toggleZoneGrid(); });
   document.getElementById('btn-clear-shots').addEventListener('click', clearShots);
   ['F','B','V','S'].forEach(t =>
     document.getElementById('shot-type-' + t).addEventListener('click', e => { e.stopPropagation(); selectShotType(t); })
