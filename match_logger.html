@@ -812,7 +812,8 @@ function renderScore() {
     const p = s.currentGame.player, o = s.currentGame.opponent;
     if (p >= 3 && o >= 3) {
       if (p === o) {
-        gDisp.innerHTML = `<div class="deuce-label">Deuce</div>`;
+        const label = cfg.adFormat ? 'Deuce' : 'Deciding';
+        gDisp.innerHTML = `<div class="deuce-label">${label}</div>`;
       } else {
         const adSide = p > o ? 'a' : 'b';
         const adText = p > o ? cfg.playerName : cfg.opponentName;
@@ -850,7 +851,7 @@ function snapshotLabel(snap) {
   if (snap.inMatchTiebreak) return `MTB ${snap.currentGame.player}–${snap.currentGame.opponent}`;
   if (snap.inTiebreak)      return `TB ${snap.currentGame.player}–${snap.currentGame.opponent}`;
   const p = snap.currentGame.player, o = snap.currentGame.opponent;
-  if (p >= 3 && o >= 3) return p === o ? 'Deuce' : (p > o ? 'Ad' : 'Ad Opp');
+  if (p >= 3 && o >= 3) return p === o ? (cfg.adFormat ? 'Deuce' : 'Deciding') : (p > o ? 'Ad' : 'Ad Opp');
   return `${gameLabel(p)}–${gameLabel(o)}`;
 }
 
@@ -1011,7 +1012,15 @@ function inferWinner(shots, server, endType) {
   if (!shots || shots.length === 0) return null;
   const last = shots[shots.length - 1];
   const returner = server === 'Player A' ? 'Player B' : 'Player A';
-  const hitter = last.seq % 2 === 1 ? server : returner;
+  // Count fault serves (consecutive S shots at the start beyond the first).
+  // Each extra serve shifts the seq parity, so subtract them before checking.
+  let extraServes = 0;
+  for (let i = 0; i < shots.length - 1; i++) {
+    if (shots[i].type === 'S' && shots[i + 1].type === 'S') extraServes++;
+    else break;
+  }
+  const effectiveSeq = last.seq - extraServes;
+  const hitter = effectiveSeq % 2 === 1 ? server : returner;
   return endType === 'Winner' ? hitter : (hitter === 'Player A' ? 'Player B' : 'Player A');
 }
 
