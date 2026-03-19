@@ -427,6 +427,14 @@
           <button class="toggle" data-value="Forced Error">Forced Err</button>
         </div>
       </div>
+      <div class="form-row" id="field-miss-type-row" style="display:none;">
+        <div class="field-label">Miss</div>
+        <div class="toggle-group" id="field-miss-type">
+          <button class="toggle" data-value="Wide">Wide</button>
+          <button class="toggle" data-value="Long">Long</button>
+          <button class="toggle" data-value="Net">Net</button>
+        </div>
+      </div>
       <div class="form-actions">
         <button class="btn-log" id="btn-log">Log Point</button>
         <button class="btn-danger" id="btn-undo">Undo Last</button>
@@ -529,6 +537,14 @@
           <button class="toggle" data-value="Winner">Winner</button>
           <button class="toggle" data-value="Unforced Error">Unforced Err</button>
           <button class="toggle" data-value="Forced Error">Forced Err</button>
+        </div>
+      </div>
+      <div class="form-row" id="modal-miss-type-row" style="display:none;">
+        <div class="field-label">Miss</div>
+        <div class="toggle-group" id="modal-miss-type">
+          <button class="toggle" data-value="Wide">Wide</button>
+          <button class="toggle" data-value="Long">Long</button>
+          <button class="toggle" data-value="Net">Net</button>
         </div>
       </div>
       <div class="form-row" style="align-items:center;">
@@ -912,6 +928,10 @@ function openEditModal(idx) {
   document.getElementById('modal-title').textContent = `Edit Point #${idx + 1}`;
 
   setToggleVal('modal-end-type', pt['End Type'], false);
+  const isError = pt['End Type'] === 'Unforced Error' || pt['End Type'] === 'Forced Error';
+  document.getElementById('modal-miss-type-row').style.display = isError ? '' : 'none';
+  if (isError && pt['Miss Type']) setToggleVal('modal-miss-type', pt['Miss Type'], false);
+  else clearToggleGroup('modal-miss-type');
 
   const shots = pt.shots || [];
   const n = shots.length;
@@ -945,6 +965,9 @@ function saveEdit() {
     Winner:           winner,
     'Number of Shots': shots.length || points[editIndex]['Number of Shots'],
     'End Type':       endType,
+    'Miss Type':      (endType === 'Unforced Error' || endType === 'Forced Error')
+                        ? (getToggleVal('modal-miss-type') || null)
+                        : null,
     'Last Shot':      lastShot,
     'Net Approach':   inferNetApproach(shots, server),
   };
@@ -1003,6 +1026,8 @@ function initToggleGroup(groupId, usePlayerColors, onChangeCb) {
 
 function resetForm() {
   clearToggleGroup('field-end-type');
+  clearToggleGroup('field-miss-type');
+  document.getElementById('field-miss-type-row').style.display = 'none';
   currentPointShots = [];
   // Auto-set serve side: even points played in current game = deuce, odd = ad
   const totalPts = score.currentGame.player + score.currentGame.opponent;
@@ -1052,6 +1077,9 @@ function logPoint() {
 
   const lastShot = { F: 'Forehand', B: 'Backhand', V: 'Volley / Overhead', S: 'Serve' }[shots[shots.length - 1].type];
   const netApp   = inferNetApproach(shots, server);
+  const missType = (endType === 'Unforced Error' || endType === 'Forced Error')
+    ? (getToggleVal('field-miss-type') || null)
+    : null;
 
   points.push({
     Timestamp:         new Date().toISOString(),
@@ -1061,6 +1089,7 @@ function logPoint() {
     Winner:            winner,
     'Number of Shots': shots.length,
     'End Type':        endType,
+    'Miss Type':       missType,
     'Last Shot':       lastShot,
     'Net Approach':    netApp,
     shots,
@@ -1136,11 +1165,12 @@ function getSetVal(id) {
 function downloadMatchLog() {
   if (points.length === 0) { alert('No points logged.'); return; }
   const headers = ['Timestamp','Server','First Serve','Second Serve','Winner',
-                   'Number of Shots','End Type','Last Shot','Net Approach','Shots (JSON)'];
+                   'Number of Shots','End Type','Miss Type','Last Shot','Net Approach','Shots (JSON)'];
   const rows = points.map(pt => [
     pt.Timestamp, pt.Server, pt['First Serve'],
     pt['Second Serve'] !== null ? pt['Second Serve'] : '',
-    pt.Winner, pt['Number of Shots'] ?? '', pt['End Type'], pt['Last Shot'] ?? '', pt['Net Approach'] ?? '',
+    pt.Winner, pt['Number of Shots'] ?? '', pt['End Type'], pt['Miss Type'] ?? '',
+    pt['Last Shot'] ?? '', pt['Net Approach'] ?? '',
     pt.shots && pt.shots.length ? JSON.stringify(pt.shots) : '',
   ]);
   const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
@@ -1228,10 +1258,20 @@ initToggleGroup('cfg-first-server', false);
 initToggleGroup('field-match-result', false);
 
 // Point form toggles
-initToggleGroup('field-end-type', false);
+initToggleGroup('field-end-type', false, val => {
+  const show = val === 'Unforced Error' || val === 'Forced Error';
+  document.getElementById('field-miss-type-row').style.display = show ? '' : 'none';
+  if (!show) clearToggleGroup('field-miss-type');
+});
+initToggleGroup('field-miss-type', false);
 
 // Modal toggles
-initToggleGroup('modal-end-type', false);
+initToggleGroup('modal-end-type', false, val => {
+  const show = val === 'Unforced Error' || val === 'Forced Error';
+  document.getElementById('modal-miss-type-row').style.display = show ? '' : 'none';
+  if (!show) clearToggleGroup('modal-miss-type');
+});
+initToggleGroup('modal-miss-type', false);
 
 // Logger buttons
 document.getElementById('btn-log').addEventListener('click', logPoint);
