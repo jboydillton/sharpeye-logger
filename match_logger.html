@@ -449,12 +449,12 @@
         </div>
         <div class="court-tracker-body" id="court-tracker-body">
           <div class="shot-legend">
-            <div class="shot-legend-item"><span class="legend-dot" style="background:#2a5298"></span>F Forehand</div>
-            <div class="shot-legend-item"><span class="legend-dot" style="background:#e87722"></span>B Backhand</div>
+            <div class="shot-legend-item"><span class="legend-dot" style="background:#2a5298"></span>W/F Forehand</div>
+            <div class="shot-legend-item"><span class="legend-dot" style="background:#e87722"></span>E/B Backhand</div>
             <div class="shot-legend-item"><span class="legend-dot" style="background:#2d8a4e"></span>V Volley/OH</div>
             <div class="shot-legend-item"><span class="legend-dot" style="background:#7c3aed"></span>S Serve</div>
           </div>
-          <div class="court-hint">Keyboard: <kbd>F</kbd><kbd>B</kbd><kbd>V</kbd> → numpad 1–9 (zones auto-flip each shot) · <kbd>S</kbd> → <kbd>D</kbd>/<kbd>A</kbd> (Deuce/Ad) → <kbd>W</kbd><kbd>B</kbd><kbd>T</kbd> · <kbd>0</kbd> = net · <kbd>Esc</kbd> = cancel</div>
+          <div class="court-hint">Keyboard: <kbd>W</kbd>=F <kbd>E</kbd>=B <kbd>V</kbd> → numpad 1–9 (zones auto-flip each shot) · <kbd>S</kbd> → <kbd>D</kbd>/<kbd>A</kbd> (Deuce/Ad) → <kbd>W</kbd><kbd>E</kbd><kbd>R</kbd> (spatially mapped) · <kbd>0</kbd> = net · <kbd>Esc</kbd> = cancel</div>
           <div class="court-wrapper">
             <svg id="court-svg" viewBox="-15 -15 250 470" width="220" height="430">
               <rect x="0" y="0" width="220" height="440" fill="#afd8f7"/>
@@ -1341,6 +1341,8 @@ document.addEventListener('keydown', e => {
   const popup = document.getElementById('shot-popup');
   if (popup && popup.style.display === 'block') {
     const k = e.key.toUpperCase();
+    if (k === 'W') { e.preventDefault(); selectShotType('F'); return; }
+    if (k === 'E') { e.preventDefault(); selectShotType('B'); return; }
     if (['F','B','V','S'].includes(k)) { e.preventDefault(); selectShotType(k); return; }
     if (k === 'T') { e.preventDefault(); selectShotSpin('topspin'); return; }
     if (k === 'C') { e.preventDefault(); selectShotSpin('slice'); return; }
@@ -1366,7 +1368,7 @@ document.addEventListener('keydown', e => {
       return;
     }
 
-    // Serve-specific keys (checked first so B=Body isn't captured as Backhand)
+    // Serve-specific keys (checked first so E=Body isn't captured as Backhand)
     if (pendingType === 'S' && pendingNx === null) {
       if (k === 'D' || k === 'A') {
         e.preventDefault();
@@ -1374,14 +1376,17 @@ document.addEventListener('keydown', e => {
         setPreType('S'); // refresh indicator
         return;
       }
-      if (['W','B','T'].includes(k)) {
+      // W/E/R: spatially-aware serve location (near/far × deuce/ad)
+      if (['W','E','R'].includes(k)) {
         e.preventDefault();
-        handleServeZone(k);
+        handleServeZone(mapWERtoServeZone(k));
         return;
       }
     }
 
-    // Type pre-selection: F / B / V / S
+    // Type pre-selection: W=Forehand, E=Backhand, V / F / B / S
+    if (k === 'W') { e.preventDefault(); setPreType('F'); return; }
+    if (k === 'E') { e.preventDefault(); setPreType('B'); return; }
     if (['F','B','V','S'].includes(k)) {
       e.preventDefault();
       setPreType(k);
@@ -1559,6 +1564,23 @@ function getNumpadZones() {
 // A serving → lands in B's service box (ny≈0.37)
 // B serving → lands in A's service box (ny≈0.63), W/T directions mirror
 let serveSide = 'D'; // 'D' = deuce, 'A' = ad
+
+// Map W/E/R keys to serve zone codes (W=wide, B=body, T=T) based on spatial context.
+// Near side deuce: W=Wide  E=Body  R=T
+// Near side ad:    W=T     E=Body  R=Wide
+// Far side deuce:  W=T     E=Body  R=Wide  (reverse of near deuce)
+// Far side ad:     W=Wide  E=Body  R=T     (reverse of near ad)
+function mapWERtoServeZone(key) {
+  if (key === 'E') return 'B'; // E=Body always
+  const server = getServingPlayer();
+  // nearSide: server is in the bottom half of the screen as currently displayed
+  const nearSide = server === 'A' ? !courtFlipped : courtFlipped;
+  const isDeuce  = serveSide === 'D';
+  // Direct map (W=Wide, R=T) applies for near-deuce OR far-ad
+  const direct = (nearSide && isDeuce) || (!nearSide && !isDeuce);
+  if (key === 'W') return direct ? 'W' : 'T';
+  if (key === 'R') return direct ? 'T' : 'W';
+}
 const SERVE_ZONES_A = {
   'D': { 'W': [0.15, 0.37], 'B': [0.32, 0.37], 'T': [0.48, 0.37] },
   'A': { 'W': [0.85, 0.37], 'B': [0.68, 0.37], 'T': [0.52, 0.37] },
@@ -1577,7 +1599,13 @@ const PRE_TYPE_COLOR = { F: '#2a5298', B: '#e87722', V: '#2d8a4e', S: '#7c3aed' 
 function getPreTypeHint(type) {
   if (type === 'S') {
     const side = serveSide === 'D' ? 'Deuce' : 'Ad';
-    return `S  ·  ${side}  ·  W / B / T   (D or A to switch)`;
+    const server = getServingPlayer();
+    const nearSide = server === 'A' ? !courtFlipped : courtFlipped;
+    const isDeuce  = serveSide === 'D';
+    const direct   = (nearSide && isDeuce) || (!nearSide && !isDeuce);
+    const wLabel = direct ? 'Wide' : 'T';
+    const rLabel = direct ? 'T'    : 'Wide';
+    return `S  ·  ${side}  ·  W=${wLabel}  E=Body  R=${rLabel}   (D or A to switch)`;
   }
   const server = getServingPlayer();
   const eff2 = getEffectiveShotIndex();
