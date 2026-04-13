@@ -1092,6 +1092,7 @@ function logPoint() {
     'Miss Type':       missType,
     'Last Shot':       lastShot,
     'Net Approach':    netApp,
+    'Player A Side':   courtFlipped ? 'far' : 'near',
     shots,
   });
 
@@ -1165,12 +1166,14 @@ function getSetVal(id) {
 function downloadMatchLog() {
   if (points.length === 0) { alert('No points logged.'); return; }
   const headers = ['Timestamp','Server','First Serve','Second Serve','Winner',
-                   'Number of Shots','End Type','Miss Type','Last Shot','Net Approach','Shots (JSON)'];
+                   'Number of Shots','End Type','Miss Type','Last Shot','Net Approach',
+                   'Player A Side','Shots (JSON)'];
   const rows = points.map(pt => [
     pt.Timestamp, pt.Server, pt['First Serve'],
     pt['Second Serve'] !== null ? pt['Second Serve'] : '',
     pt.Winner, pt['Number of Shots'] ?? '', pt['End Type'], pt['Miss Type'] ?? '',
     pt['Last Shot'] ?? '', pt['Net Approach'] ?? '',
+    pt['Player A Side'] ?? 'near',
     pt.shots && pt.shots.length ? JSON.stringify(pt.shots) : '',
   ]);
   const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
