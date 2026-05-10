@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SharpEye Video Player</title>
+  <style>
+    :root {
+      --blue: #1e3a5f;
+      --blue-light: #2a5298;
+      --orange: #e87722;
+      --orange-light: #f4a261;
+      --bg: #f0f4f8;
+      --card: #ffffff;
+      --border: #d1d9e0;
+      --text: #1a2a3a;
+      --muted: #6b7a8d;
+      --toggle-off: #e8ecf0;
+      --toggle-off-text: #4a5568;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+    }
+
+    .topbar {
+      background: var(--blue); color: #fff;
+      padding: 10px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .topbar h1 { font-size: 16px; font-weight: 700; }
+    .file-row {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .file-name {
+      font-size: 12px; color: rgba(255,255,255,0.7);
+      max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .btn-load {
+      background: var(--orange); color: #fff; border: none;
+      border-radius: var(--radius); padding: 7px 16px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-load:hover { background: var(--orange-light); }
+    input[type="file"] { display: none; }
+
+    .stage {
+      flex: 1;
+      display: flex; align-items: center; justify-content: center;
+      background: #000;
+      min-height: 0;
+    }
+    .stage.empty {
+      background: var(--bg);
+      flex-direction: column; gap: 14px;
+      color: var(--muted); font-size: 14px;
+    }
+    .stage.empty .drop-hint {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 60px 80px; text-align: center;
+      background: var(--card);
+    }
+    .stage.empty .drop-hint.drag-over {
+      border-color: var(--orange); background: #fff7ef;
+    }
+    video { max-width: 100%; max-height: 100%; display: block; }
+
+    .controls {
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex; flex-direction: column; gap: 10px;
+      flex-shrink: 0;
+    }
+    .control-row {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .timestamp {
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 18px; font-weight: 700;
+      color: var(--blue);
+      background: var(--bg);
+      padding: 6px 14px; border-radius: var(--radius);
+      min-width: 110px; text-align: center;
+      cursor: pointer;
+      user-select: all;
+      transition: background 0.15s;
+    }
+    .timestamp:hover { background: #e3eaf3; }
+    .timestamp.copied { background: #d4edda; color: var(--blue); }
+    .timestamp-label {
+      font-size: 10px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+
+    .btn {
+      background: var(--blue); color: #fff; border: none;
+      border-radius: var(--radius); padding: 9px 16px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: background 0.15s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:hover { background: var(--blue-light); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-skip {
+      background: var(--toggle-off); color: var(--toggle-off-text);
+      font-weight: 700; min-width: 78px; justify-content: center;
+    }
+    .btn-skip:hover { background: #d8dde3; }
+    .btn-play {
+      background: var(--orange); min-width: 90px; justify-content: center;
+      font-size: 15px; padding: 10px 18px;
+    }
+    .btn-play:hover { background: var(--orange-light); }
+
+    .speed-group {
+      display: flex; align-items: center; gap: 4px;
+      margin-left: auto;
+    }
+    .speed-label {
+      font-size: 10px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      margin-right: 4px;
+    }
+    .speed-btn {
+      padding: 6px 10px; font-size: 12px; font-weight: 600;
+      border: 1.5px solid var(--border); border-radius: 5px;
+      background: var(--toggle-off); color: var(--toggle-off-text);
+      cursor: pointer; transition: all 0.1s;
+    }
+    .speed-btn:hover { border-color: var(--blue); }
+    .speed-btn.active {
+      background: var(--blue); color: #fff; border-color: var(--blue);
+    }
+
+    .seek-row {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .seek-bar {
+      flex: 1; height: 6px;
+      -webkit-appearance: none; appearance: none;
+      background: var(--toggle-off); border-radius: 3px;
+      outline: none; cursor: pointer;
+    }
+    .seek-bar::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--orange); cursor: pointer;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .seek-bar::-moz-range-thumb {
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--orange); cursor: pointer;
+      border: 2px solid #fff;
+    }
+    .duration {
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 12px; color: var(--muted);
+      min-width: 70px; text-align: right;
+    }
+    .hint {
+      font-size: 11px; color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>SharpEye Video Player</h1>
+  <div class="file-row">
+    <span class="file-name" id="file-name"></span>
+    <label for="file-input" class="btn-load">Load Video</label>
+    <input type="file" id="file-input" accept="video/*">
+  </div>
+</div>
+
+<div class="stage empty" id="stage">
+  <div class="drop-hint" id="drop-hint">
+    Drop a video file here<br>
+    <span style="font-size:12px;">or click <strong>Load Video</strong> above</span>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="seek-row">
+    <input type="range" class="seek-bar" id="seek-bar" min="0" max="100" value="0" step="0.01">
+    <span class="duration" id="duration">0:00 / 0:00</span>
+  </div>
+
+  <div class="control-row">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+      <span class="timestamp-label">Time</span>
+      <span class="timestamp" id="timestamp" title="Click to copy">0:00</span>
+    </div>
+
+    <button class="btn btn-skip" id="btn-back">⏪ 5s</button>
+    <button class="btn btn-play" id="btn-play">▶ Play</button>
+    <button class="btn btn-skip" id="btn-fwd">5s ⏩</button>
+    <button class="btn btn-skip" id="btn-mute" title="Mute (M)">🔊 Mute</button>
+
+    <div class="speed-group">
+      <span class="speed-label">Speed</span>
+      <button class="speed-btn" data-speed="0.25">0.25x</button>
+      <button class="speed-btn" data-speed="0.5">0.5x</button>
+      <button class="speed-btn" data-speed="0.75">0.75x</button>
+      <button class="speed-btn active" data-speed="1">1x</button>
+      <button class="speed-btn" data-speed="1.25">1.25x</button>
+      <button class="speed-btn" data-speed="1.5">1.5x</button>
+      <button class="speed-btn" data-speed="2">2x</button>
+    </div>
+  </div>
+
+  <div class="hint">
+    <strong>Shortcuts:</strong> Space = play/pause &nbsp;·&nbsp; ← / → = ±5s &nbsp;·&nbsp; M = mute &nbsp;·&nbsp; Click time to copy
+  </div>
+</div>
+
+<script>
+const fileInput  = document.getElementById('file-input');
+const fileName   = document.getElementById('file-name');
+const stage      = document.getElementById('stage');
+const dropHint   = document.getElementById('drop-hint');
+const seekBar    = document.getElementById('seek-bar');
+const duration   = document.getElementById('duration');
+const timestamp  = document.getElementById('timestamp');
+const btnBack    = document.getElementById('btn-back');
+const btnFwd     = document.getElementById('btn-fwd');
+const btnPlay    = document.getElementById('btn-play');
+const btnMute    = document.getElementById('btn-mute');
+const speedBtns  = document.querySelectorAll('.speed-btn');
+
+let video = null;
+
+function fmt(sec) {
+  if (!isFinite(sec) || sec < 0) sec = 0;
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = Math.floor(sec % 60);
+  if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+
+function loadVideo(file) {
+  if (!file) return;
+  if (video) {
+    URL.revokeObjectURL(video.src);
+    video.remove();
+  }
+  stage.classList.remove('empty');
+  stage.innerHTML = '';
+  video = document.createElement('video');
+  video.src = URL.createObjectURL(file);
+  video.preload = 'auto';
+  video.tabIndex = -1;
+  stage.appendChild(video);
+  fileName.textContent = file.name;
+
+  video.addEventListener('loadedmetadata', () => {
+    seekBar.max = video.duration;
+    duration.textContent = `${fmt(0)} / ${fmt(video.duration)}`;
+    applySpeed();
+  });
+  video.addEventListener('timeupdate', () => {
+    seekBar.value = video.currentTime;
+    timestamp.textContent = fmt(video.currentTime);
+    duration.textContent = `${fmt(video.currentTime)} / ${fmt(video.duration)}`;
+  });
+  video.addEventListener('play',  () => { btnPlay.textContent = '⏸ Pause'; });
+  video.addEventListener('pause', () => { btnPlay.textContent = '▶ Play';  });
+  video.addEventListener('volumechange', () => {
+    btnMute.textContent = video.muted ? '🔇 Unmute' : '🔊 Mute';
+  });
+}
+
+function applySpeed() {
+  if (!video) return;
+  const active = document.querySelector('.speed-btn.active');
+  if (active) video.playbackRate = parseFloat(active.dataset.speed);
+}
+
+fileInput.addEventListener('change', e => loadVideo(e.target.files[0]));
+
+// Drag & drop
+['dragenter', 'dragover'].forEach(ev =>
+  document.addEventListener(ev, e => {
+    e.preventDefault();
+    if (dropHint) dropHint.classList.add('drag-over');
+  })
+);
+['dragleave', 'drop'].forEach(ev =>
+  document.addEventListener(ev, e => {
+    e.preventDefault();
+    if (dropHint) dropHint.classList.remove('drag-over');
+  })
+);
+document.addEventListener('drop', e => {
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('video/')) loadVideo(f);
+});
+
+// Seek bar
+seekBar.addEventListener('input', () => {
+  if (video) video.currentTime = parseFloat(seekBar.value);
+});
+
+// Skip / play buttons
+btnBack.addEventListener('click', () => {
+  if (video) video.currentTime = Math.max(0, video.currentTime - 5);
+});
+btnFwd.addEventListener('click', () => {
+  if (video) video.currentTime = Math.min(video.duration, video.currentTime + 5);
+});
+btnPlay.addEventListener('click', () => {
+  if (!video) return;
+  if (video.paused) video.play(); else video.pause();
+});
+btnMute.addEventListener('click', () => {
+  if (video) video.muted = !video.muted;
+});
+
+// Speed buttons
+speedBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    speedBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applySpeed();
+  });
+});
+
+// Click timestamp to copy
+timestamp.addEventListener('click', async () => {
+  const text = timestamp.textContent;
+  try {
+    await navigator.clipboard.writeText(text);
+    timestamp.classList.add('copied');
+    const orig = text;
+    timestamp.textContent = 'copied!';
+    setTimeout(() => {
+      timestamp.classList.remove('copied');
+      timestamp.textContent = orig;
+    }, 700);
+  } catch {}
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (!video) return;
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return;
+
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (video.paused) video.play(); else video.pause();
+  } else if (e.code === 'ArrowLeft') {
+    e.preventDefault();
+    video.currentTime = Math.max(0, video.currentTime - 5);
+  } else if (e.code === 'ArrowRight') {
+    e.preventDefault();
+    video.currentTime = Math.min(video.duration, video.currentTime + 5);
+  } else if (e.code === 'KeyM') {
+    e.preventDefault();
+    video.muted = !video.muted;
+  }
+});
+</script>
+</body>
+</html>
