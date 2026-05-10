@@ -83,8 +83,80 @@
                   flex-shrink: 0; }
     .logger-bar h1 { font-size: 16px; color: #fff; }
 
-    .logger-body { display: grid; grid-template-columns: 240px 1fr 280px;
-                   flex: 1; overflow: hidden; }
+    .logger-main { flex: 1; display: flex; min-height: 0; overflow: hidden; }
+    .logger-body { display: grid; grid-template-columns: 200px 1fr 240px;
+                   flex: 1.05; min-width: 0; overflow: hidden; }
+
+    /* ── Embedded Video Panel ── */
+    .video-panel { flex: 1; min-width: 0; display: flex; flex-direction: column;
+                   background: #000; border-right: 1px solid var(--border); }
+    .video-panel-header { background: var(--blue); color: #fff;
+                          padding: 6px 12px; display: flex; align-items: center;
+                          justify-content: space-between; gap: 8px; flex-shrink: 0; }
+    .video-panel-header .vp-title { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.85);
+                                    text-transform: uppercase; letter-spacing: 0.05em; }
+    .video-panel-header .vp-file-name { font-size: 11px; color: rgba(255,255,255,0.7);
+                                        flex: 1; min-width: 0;
+                                        overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .vp-btn-load { background: var(--orange); color: #fff; border: none;
+                   border-radius: var(--radius); padding: 5px 12px;
+                   font-size: 12px; font-weight: 600; cursor: pointer; }
+    .vp-btn-load:hover { background: var(--orange-light); }
+    .vp-file-input { display: none; }
+    .vp-stage { flex: 1; display: flex; align-items: center; justify-content: center;
+                background: #000; min-height: 0; }
+    .vp-stage.empty { background: var(--bg); flex-direction: column; gap: 10px;
+                      color: var(--muted); font-size: 13px; padding: 20px; }
+    .vp-stage.empty .vp-drop-hint { border: 2px dashed var(--border);
+                                    border-radius: var(--radius);
+                                    padding: 36px 40px; text-align: center;
+                                    background: var(--card); }
+    .vp-stage.empty .vp-drop-hint.drag-over { border-color: var(--orange); background: #fff7ef; }
+    .vp-stage video { max-width: 100%; max-height: 100%; display: block; }
+
+    .vp-controls { background: var(--card); border-top: 1px solid var(--border);
+                   padding: 8px 12px; display: flex; flex-direction: column; gap: 6px;
+                   flex-shrink: 0; }
+    .vp-seek-row { display: flex; align-items: center; gap: 8px; }
+    .vp-seek-bar { flex: 1; height: 6px;
+                   -webkit-appearance: none; appearance: none;
+                   background: var(--toggle-off); border-radius: 3px;
+                   outline: none; cursor: pointer; }
+    .vp-seek-bar::-webkit-slider-thumb { -webkit-appearance: none; appearance: none;
+                                         width: 14px; height: 14px; border-radius: 50%;
+                                         background: var(--orange); cursor: pointer;
+                                         border: 2px solid #fff;
+                                         box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    .vp-seek-bar::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%;
+                                     background: var(--orange); cursor: pointer;
+                                     border: 2px solid #fff; }
+    .vp-duration { font-family: 'Consolas', 'Monaco', monospace;
+                   font-size: 11px; color: var(--muted);
+                   min-width: 86px; text-align: right; }
+    .vp-control-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .vp-timestamp { font-family: 'Consolas', 'Monaco', monospace;
+                    font-size: 15px; font-weight: 700; color: var(--blue);
+                    background: var(--bg); padding: 5px 10px;
+                    border-radius: var(--radius); min-width: 76px; text-align: center; }
+    .vp-btn { background: var(--blue); color: #fff; border: none;
+              border-radius: var(--radius); padding: 6px 11px;
+              font-size: 12px; font-weight: 600; cursor: pointer;
+              transition: background 0.15s; }
+    .vp-btn:hover { background: var(--blue-light); }
+    .vp-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .vp-btn-skip { background: var(--toggle-off); color: var(--toggle-off-text);
+                   font-weight: 700; min-width: 56px; }
+    .vp-btn-skip:hover { background: #d8dde3; }
+    .vp-btn-play { background: var(--orange); min-width: 74px; }
+    .vp-btn-play:hover { background: var(--orange-light); }
+    .vp-speed-group { display: flex; align-items: center; gap: 3px; margin-left: auto; }
+    .vp-speed-label { font-size: 9px; font-weight: 700; color: var(--muted);
+                      text-transform: uppercase; letter-spacing: 0.05em; }
+    .vp-speed-btn { padding: 4px 7px; font-size: 11px; font-weight: 600;
+                    border: 1px solid var(--border); border-radius: 4px;
+                    background: var(--toggle-off); color: var(--toggle-off-text);
+                    cursor: pointer; }
+    .vp-speed-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
 
     /* Score panel */
     .score-panel { background: var(--blue); color: #fff; padding: 20px 16px;
@@ -265,7 +337,14 @@
 
       /* Logger body: stacked, one panel visible at a time */
       #page-logger.active { height: 100dvh; height: 100vh; }
-      .logger-body { display: flex; flex-direction: column; }
+      .logger-main { flex-direction: column; }
+      .video-panel { flex: 0 0 38vh; max-height: 38vh; min-height: 200px;
+                     border-right: none; border-bottom: 1px solid var(--border); }
+      .vp-stage.empty .vp-drop-hint { padding: 18px 24px; font-size: 12px; }
+      .vp-timestamp { font-size: 13px; min-width: 64px; padding: 4px 8px; }
+      .vp-btn, .vp-btn-skip, .vp-btn-play { padding: 5px 9px; font-size: 11px; }
+      .vp-speed-btn { padding: 3px 5px; font-size: 10px; }
+      .logger-body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
       .score-panel, .point-form-panel, .history-panel { display: none; }
       .score-panel.mob-active {
         display: flex; flex: 1; overflow-y: auto;
@@ -382,6 +461,45 @@
     <button class="mobile-tab" data-panel="score-panel">Score</button>
     <button class="mobile-tab" data-panel="history-panel">History</button>
   </div>
+
+  <div class="logger-main">
+
+    <!-- Embedded Video Panel -->
+    <div class="video-panel" id="video-panel">
+      <div class="video-panel-header">
+        <span class="vp-title">Video</span>
+        <span class="vp-file-name" id="vp-file-name"></span>
+        <label for="vp-file-input" class="vp-btn-load">Load Video</label>
+        <input type="file" id="vp-file-input" class="vp-file-input" accept="video/*">
+      </div>
+      <div class="vp-stage empty" id="vp-stage">
+        <div class="vp-drop-hint" id="vp-drop-hint">
+          Drop a video file here<br>
+          <span style="font-size:11px;">or click <strong>Load Video</strong> above</span>
+        </div>
+      </div>
+      <div class="vp-controls">
+        <div class="vp-seek-row">
+          <input type="range" class="vp-seek-bar" id="vp-seek-bar" min="0" max="100" value="0" step="0.01">
+          <span class="vp-duration" id="vp-duration">0:00 / 0:00</span>
+        </div>
+        <div class="vp-control-row">
+          <span class="vp-timestamp" id="vp-timestamp">0:00</span>
+          <button class="vp-btn vp-btn-skip" id="vp-btn-back" title="Back 5s (←)">⏪ 5s</button>
+          <button class="vp-btn vp-btn-play" id="vp-btn-play" title="Play / Pause (Space)">▶ Play</button>
+          <button class="vp-btn vp-btn-skip" id="vp-btn-fwd" title="Forward 5s (→)">5s ⏩</button>
+          <button class="vp-btn vp-btn-skip" id="vp-btn-mute" title="Mute (M)">🔊</button>
+          <div class="vp-speed-group">
+            <span class="vp-speed-label">Speed</span>
+            <button class="vp-speed-btn" data-speed="0.25">0.25x</button>
+            <button class="vp-speed-btn" data-speed="0.5">0.5x</button>
+            <button class="vp-speed-btn active" data-speed="1">1x</button>
+            <button class="vp-speed-btn" data-speed="1.5">1.5x</button>
+            <button class="vp-speed-btn" data-speed="2">2x</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
   <div class="logger-body">
 
@@ -531,6 +649,7 @@
     </div>
 
   </div><!-- /logger-body -->
+  </div><!-- /logger-main -->
 </div>
 
 
@@ -570,6 +689,10 @@
         <div class="field-label">Shots</div>
         <div id="modal-shot-info" style="font-size:12px;color:var(--muted);padding-top:2px;">No shots tracked</div>
       </div>
+      <div class="form-row" style="align-items:center;">
+        <div class="field-label">Point Time</div>
+        <input type="text" id="modal-point-end-time" placeholder="m:ss or h:mm:ss" autocomplete="off" style="width:160px;">
+      </div>
       <div class="form-row" id="modal-game-end-time-row" style="display:none;align-items:center;">
         <div class="field-label">Game End Time</div>
         <input type="text" id="modal-game-end-time" placeholder="m:ss or h:mm:ss" autocomplete="off" style="width:160px;">
@@ -584,27 +707,6 @@
     </div>
   </div>
 </div>
-
-<!-- ═══════════════════════════════ GAME-END VIDEO TIME MODAL ═══════════════════════════════ -->
-<div class="modal-overlay" id="game-end-modal">
-  <div class="modal-box" style="width: 380px;">
-    <div class="modal-header">
-      <h2 id="game-end-title">Game Ended</h2>
-      <button class="modal-close" id="game-end-close">×</button>
-    </div>
-    <div class="modal-body">
-      <div id="game-end-context" style="font-size:13px;color:var(--muted);margin-bottom:10px;"></div>
-      <div class="field-label" style="margin-bottom:6px;">Video time at game end</div>
-      <input type="text" id="game-end-time-input" placeholder="m:ss or h:mm:ss (e.g. 3:45)" autocomplete="off">
-      <div style="font-size:11px;color:var(--muted);margin-top:6px;">Used as the chapter timestamp for this game on the website video. Leave blank to skip.</div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" id="game-end-skip">Skip</button>
-      <button class="btn-primary" id="game-end-save">Save</button>
-    </div>
-  </div>
-</div>
-
 
 <!-- ═══════════════════════════════ PAGE 3 — EXPORT ═══════════════════════════════ -->
 <div id="page-export" class="page">
@@ -974,9 +1076,11 @@ function renderHistory() {
 
     const gameEndTag = pt['Game Ended']
       ? (pt['Game End Video Time']
-          ? `<span class="tag" style="background:#1e3a5f;color:#fff;">▶ ${pt['Game End Video Time']}</span>`
+          ? `<span class="tag" style="background:#1e3a5f;color:#fff;">▶ ${pt['Game End Video Time']} (game)</span>`
           : `<span class="tag" style="background:#fff3cd;color:#856404;border:1px solid #ffeaa7;">▶ no time</span>`)
-      : '';
+      : (pt['Point End Video Time']
+          ? `<span class="tag" style="background:#e3eaf3;color:var(--blue);">▶ ${pt['Point End Video Time']}</span>`
+          : '');
 
     return `<div class="history-item" data-index="${i}">
       <div class="hi-top">
@@ -1021,6 +1125,8 @@ function openEditModal(idx) {
   document.getElementById('modal-shot-info').textContent =
     n > 0 ? `${n} shot${n !== 1 ? 's' : ''} tracked · server: ${pt.Server}` : 'No shots tracked';
 
+  document.getElementById('modal-point-end-time').value = pt['Point End Video Time'] || '';
+
   const endedGame = !!pt['Game Ended'];
   document.getElementById('modal-game-end-time-row').style.display = endedGame ? '' : 'none';
   document.getElementById('modal-game-end-time').value = endedGame ? (pt['Game End Video Time'] || '') : '';
@@ -1044,6 +1150,16 @@ function saveEdit() {
   const lastShot = shots.length > 0
     ? { F: 'Forehand', B: 'Backhand', V: 'Volley / Overhead', S: 'Serve' }[shots[shots.length - 1].type]
     : points[editIndex]['Last Shot'];
+
+  let pointEndTime = points[editIndex]['Point End Video Time'] || null;
+  const ptRaw = document.getElementById('modal-point-end-time').value.trim();
+  if (ptRaw === '') {
+    pointEndTime = null;
+  } else {
+    const parsed = parseVideoTime(ptRaw);
+    if (parsed === null) { alert('Invalid point time. Use m:ss or h:mm:ss.'); return; }
+    pointEndTime = formatHMS(parsed);
+  }
 
   let gameEndTime = points[editIndex]['Game End Video Time'] || null;
   if (points[editIndex]['Game Ended']) {
@@ -1069,6 +1185,7 @@ function saveEdit() {
                         : null,
     'Last Shot':      lastShot,
     'Net Approach':   getToggleVal('modal-net-approach') || inferNetApproach(shots, server),
+    'Point End Video Time': pointEndTime,
     'Game End Video Time': gameEndTime,
   };
 
@@ -1088,9 +1205,8 @@ function deletePoint() {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// GAME-END VIDEO TIME PROMPT
+// VIDEO TIME PARSING (used when manually editing point times)
 // ─────────────────────────────────────────────────────────────────
-let gameEndPromptIdx = null;
 
 // Accepts "ss", "m:ss", or "h:mm:ss". Returns total seconds, or null if invalid.
 function parseVideoTime(raw) {
@@ -1105,49 +1221,6 @@ function parseVideoTime(raw) {
   else                        total = nums[0] * 3600 + nums[1] * 60 + nums[2];
   if (total < 0) return null;
   return total;
-}
-
-function promptGameEndTime(idx, ctx) {
-  gameEndPromptIdx = idx;
-  const setOrTb = ctx.beforeInTiebreak
-    ? (ctx.setJustCompleted ? 'Tiebreak (set ended)' : 'Tiebreak point')
-    : (ctx.setJustCompleted ? 'Game ended set' : 'Game ended');
-  const setIdx = score.completedSets.length + (ctx.setJustCompleted ? 0 : 1);
-  const sp = score.currentSet.player, so = score.currentSet.opponent;
-  document.getElementById('game-end-title').textContent = setOrTb;
-  document.getElementById('game-end-context').textContent =
-    ctx.setJustCompleted
-      ? `Set ${score.completedSets.length} complete · ${score.setsWon.player}–${score.setsWon.opponent} sets`
-      : `Set ${setIdx} now ${sp}–${so}`;
-  document.getElementById('game-end-time-input').value = '';
-  document.getElementById('game-end-modal').classList.add('open');
-  setTimeout(() => document.getElementById('game-end-time-input').focus(), 50);
-}
-
-function closeGameEndModal() {
-  document.getElementById('game-end-modal').classList.remove('open');
-  gameEndPromptIdx = null;
-}
-
-function saveGameEndTime() {
-  if (gameEndPromptIdx === null) { closeGameEndModal(); return; }
-  const raw = document.getElementById('game-end-time-input').value.trim();
-  if (raw === '') { skipGameEndTime(); return; }
-  const parsed = parseVideoTime(raw);
-  if (parsed === null) { alert('Invalid video time. Use m:ss or h:mm:ss.'); return; }
-  if (points[gameEndPromptIdx]) {
-    points[gameEndPromptIdx]['Game End Video Time'] = formatHMS(parsed);
-  }
-  closeGameEndModal();
-  renderHistory();
-}
-
-function skipGameEndTime() {
-  if (gameEndPromptIdx !== null && points[gameEndPromptIdx]) {
-    points[gameEndPromptIdx]['Game End Video Time'] = null;
-  }
-  closeGameEndModal();
-  renderHistory();
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -1247,7 +1320,8 @@ function logPoint() {
 
   const beforeGame          = { ...score.currentGame };
   const beforeCompletedSets = score.completedSets.length;
-  const beforeInTiebreak    = score.inTiebreak || score.inMatchTiebreak;
+
+  const videoTime = getVideoTimestamp();
 
   points.push({
     Timestamp:         new Date().toISOString(),
@@ -1260,6 +1334,7 @@ function logPoint() {
     'Miss Type':       missType,
     'Last Shot':       lastShot,
     'Net Approach':    netApp,
+    'Point End Video Time': videoTime,
     'Game End Video Time': null,
     'Game Ended':      false,
     shots,
@@ -1275,20 +1350,16 @@ function logPoint() {
 
   if (gameJustEnded) {
     points[points.length - 1]['Game Ended'] = true;
+    points[points.length - 1]['Game End Video Time'] = videoTime;
   }
 
   renderScore();
   renderHistory();
   resetForm();
-
-  if (gameJustEnded) {
-    promptGameEndTime(points.length - 1, { setJustCompleted, beforeInTiebreak });
-  }
 }
 
 function undoLast() {
   if (points.length === 0) return;
-  if (gameEndPromptIdx === points.length - 1) closeGameEndModal();
   points.pop();
   rebuildScore();
   renderScore();
@@ -1356,6 +1427,125 @@ function formatHMS(totalSec) {
   const mm = String(m).padStart(2, '0');
   const ss = String(s).padStart(2, '0');
   return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// EMBEDDED VIDEO PLAYER
+// ─────────────────────────────────────────────────────────────────
+const vp = {
+  video: null,
+  stage: null,
+  fileName: null,
+  dropHint: null,
+  seekBar: null,
+  duration: null,
+  timestamp: null,
+  btnPlay: null,
+  btnMute: null,
+};
+
+// Returns formatted "m:ss" or "h:mm:ss" of the current video position,
+// or null if no video is loaded.
+function getVideoTimestamp() {
+  if (!vp.video || !Number.isFinite(vp.video.currentTime)) return null;
+  return formatHMS(vp.video.currentTime);
+}
+
+function vpLoadVideo(file) {
+  if (!file) return;
+  if (vp.video) {
+    try { URL.revokeObjectURL(vp.video.src); } catch (e) {}
+    vp.video.remove();
+  }
+  vp.stage.classList.remove('empty');
+  vp.stage.innerHTML = '';
+  vp.video = document.createElement('video');
+  vp.video.src = URL.createObjectURL(file);
+  vp.video.preload = 'auto';
+  vp.video.tabIndex = -1;
+  vp.stage.appendChild(vp.video);
+  vp.fileName.textContent = file.name;
+
+  vp.video.addEventListener('loadedmetadata', () => {
+    vp.seekBar.max = vp.video.duration;
+    vp.duration.textContent = `${formatHMS(0)} / ${formatHMS(vp.video.duration)}`;
+    vpApplySpeed();
+  });
+  vp.video.addEventListener('timeupdate', () => {
+    vp.seekBar.value = vp.video.currentTime;
+    vp.timestamp.textContent = formatHMS(vp.video.currentTime);
+    vp.duration.textContent =
+      `${formatHMS(vp.video.currentTime)} / ${formatHMS(vp.video.duration)}`;
+  });
+  vp.video.addEventListener('play',  () => { vp.btnPlay.textContent = '⏸ Pause'; });
+  vp.video.addEventListener('pause', () => { vp.btnPlay.textContent = '▶ Play';  });
+  vp.video.addEventListener('volumechange', () => {
+    vp.btnMute.textContent = vp.video.muted ? '🔇' : '🔊';
+  });
+}
+
+function vpApplySpeed() {
+  if (!vp.video) return;
+  const active = document.querySelector('.vp-speed-btn.active');
+  if (active) vp.video.playbackRate = parseFloat(active.dataset.speed);
+}
+
+function vpInit() {
+  vp.stage     = document.getElementById('vp-stage');
+  vp.fileName  = document.getElementById('vp-file-name');
+  vp.dropHint  = document.getElementById('vp-drop-hint');
+  vp.seekBar   = document.getElementById('vp-seek-bar');
+  vp.duration  = document.getElementById('vp-duration');
+  vp.timestamp = document.getElementById('vp-timestamp');
+  vp.btnPlay   = document.getElementById('vp-btn-play');
+  vp.btnMute   = document.getElementById('vp-btn-mute');
+
+  document.getElementById('vp-file-input').addEventListener('change', e => {
+    vpLoadVideo(e.target.files[0]);
+  });
+
+  // Drag & drop scoped to the video panel only
+  const panel = document.getElementById('video-panel');
+  ['dragenter','dragover'].forEach(ev =>
+    panel.addEventListener(ev, e => {
+      e.preventDefault();
+      if (vp.dropHint) vp.dropHint.classList.add('drag-over');
+    })
+  );
+  ['dragleave','drop'].forEach(ev =>
+    panel.addEventListener(ev, e => {
+      e.preventDefault();
+      if (vp.dropHint) vp.dropHint.classList.remove('drag-over');
+    })
+  );
+  panel.addEventListener('drop', e => {
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('video/')) vpLoadVideo(f);
+  });
+
+  vp.seekBar.addEventListener('input', () => {
+    if (vp.video) vp.video.currentTime = parseFloat(vp.seekBar.value);
+  });
+  document.getElementById('vp-btn-back').addEventListener('click', () => {
+    if (vp.video) vp.video.currentTime = Math.max(0, vp.video.currentTime - 5);
+  });
+  document.getElementById('vp-btn-fwd').addEventListener('click', () => {
+    if (vp.video) vp.video.currentTime = Math.min(vp.video.duration, vp.video.currentTime + 5);
+  });
+  vp.btnPlay.addEventListener('click', () => {
+    if (!vp.video) return;
+    if (vp.video.paused) vp.video.play(); else vp.video.pause();
+  });
+  vp.btnMute.addEventListener('click', () => {
+    if (vp.video) vp.video.muted = !vp.video.muted;
+  });
+  document.querySelectorAll('.vp-speed-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.vp-speed-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      vpApplySpeed();
+    });
+  });
 }
 
 // Walks points through the scoring engine and returns one row per game-ending
@@ -1426,12 +1616,14 @@ function computeGameTimeline() {
 function downloadMatchLog() {
   if (points.length === 0) { alert('No points logged.'); return; }
   const headers = ['Timestamp','Server','First Serve','Second Serve','Winner',
-                   'Number of Shots','End Type','Miss Type','Last Shot','Net Approach','Shots (JSON)'];
+                   'Number of Shots','End Type','Miss Type','Last Shot','Net Approach',
+                   'Point End Video Time','Game End Video Time','Shots (JSON)'];
   const rows = points.map(pt => [
     pt.Timestamp, pt.Server, pt['First Serve'],
     pt['Second Serve'] !== null ? pt['Second Serve'] : '',
     pt.Winner, pt['Number of Shots'] ?? '', pt['End Type'], pt['Miss Type'] ?? '',
     pt['Last Shot'] ?? '', pt['Net Approach'] ?? '',
+    pt['Point End Video Time'] ?? '', pt['Game End Video Time'] ?? '',
     pt.shots && pt.shots.length ? JSON.stringify(pt.shots) : '',
   ]);
   const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
@@ -1529,6 +1721,9 @@ function updatePlayerLabels() {
 // WIRE UP EVENTS
 // ─────────────────────────────────────────────────────────────────
 
+// Embedded video player
+vpInit();
+
 // Setup toggle groups
 initToggleGroup('cfg-first-server', false);
 initToggleGroup('field-match-result', false);
@@ -1569,15 +1764,6 @@ document.getElementById('modal-save').addEventListener('click', saveEdit);
 document.getElementById('modal-delete').addEventListener('click', deletePoint);
 document.getElementById('edit-modal').addEventListener('click', e => {
   if (e.target === document.getElementById('edit-modal')) closeEditModal();
-});
-
-// Game-end video time prompt
-document.getElementById('game-end-close').addEventListener('click', skipGameEndTime);
-document.getElementById('game-end-skip').addEventListener('click', skipGameEndTime);
-document.getElementById('game-end-save').addEventListener('click', saveGameEndTime);
-document.getElementById('game-end-time-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') { e.preventDefault(); saveGameEndTime(); }
-  else if (e.key === 'Escape') { e.preventDefault(); skipGameEndTime(); }
 });
 
 // Export buttons
@@ -1624,6 +1810,36 @@ document.getElementById('btn-start').addEventListener('click', () => {
 
 // Keyboard shortcuts
 document.addEventListener('keydown', e => {
+  // Video player shortcuts (only on the logger page, not while typing)
+  {
+    const tag = (e.target.tagName || '').toLowerCase();
+    const inField = tag === 'input' || tag === 'textarea' || e.target.isContentEditable;
+    const onLoggerPage = document.getElementById('page-logger').classList.contains('active');
+    const modalOpenAny = document.getElementById('edit-modal').classList.contains('open');
+    if (onLoggerPage && !inField && !modalOpenAny && vp.video) {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (vp.video.paused) vp.video.play(); else vp.video.pause();
+        return;
+      }
+      if (e.code === 'ArrowLeft') {
+        e.preventDefault();
+        vp.video.currentTime = Math.max(0, vp.video.currentTime - 5);
+        return;
+      }
+      if (e.code === 'ArrowRight') {
+        e.preventDefault();
+        vp.video.currentTime = Math.min(vp.video.duration, vp.video.currentTime + 5);
+        return;
+      }
+      if (e.code === 'KeyM') {
+        e.preventDefault();
+        vp.video.muted = !vp.video.muted;
+        return;
+      }
+    }
+  }
+
   // Court tracker shortcuts (intercept when shot popup is open)
   const popup = document.getElementById('shot-popup');
   if (popup && popup.style.display === 'block') {
